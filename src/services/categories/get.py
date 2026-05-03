@@ -53,11 +53,15 @@ def get_tree_categories():
     return __categories_tree
 
 
-# TODO: lang support
 def get_category(category_id: uuid.UUID, include_product_count: bool, lang: str = "ru"):
     r = session.get(f"http://{B2B_HOST}/api/v1/categories/{category_id}",
                     params={
                         "include_product_count": "true" if include_product_count else "false",
                         "lang": lang
                     })
+    return r.json()
+
+
+def get_category_filter(category_id: uuid.UUID):
+    r = session.get(f"http://{B2B_HOST}/api/v1/categories/{category_id}/filters")
     return r.json()

@@ -6,7 +6,7 @@ from typing import Literal
 from django.http import JsonResponse
 from rest_framework.views import APIView
 
-from src.services.categories.get import get_category, get_tree_categories
+from src.services.categories.get import get_category, get_tree_categories, get_category_filter
 
 
 class CategoryView(APIView):
@@ -24,3 +24,8 @@ class CategoryView(APIView):
 class CategoriesView(APIView):
     def get(self, request):
         return JsonResponse(get_tree_categories(), safe=False)
+
+
+class CategoryFilterView(APIView):
+    def get(self, request, id: uuid.UUID):
+        return JsonResponse(get_category_filter(id), safe=False)
