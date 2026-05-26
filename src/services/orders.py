@@ -5,9 +5,19 @@ from interservice_connection.b2b_http_client.main import b2b_client
 from src.models.orders import Order, OrderItem, OrderOperations
 from src.serializers.orders import OrderSerializer
 
+class AccessDenied(Exception):
+    pass
+
+class OrderNotFound(Exception):
+    pass
 
 class BadRequestException(Exception):
     pass
+
+class CancelNotAllowed(Exception):
+    def __init__(self, message, current_status):
+        super().__init__(message)
+        self.current_status = current_status
 
 
 class ConflictError(Exception):
@@ -89,3 +99,30 @@ def create_order(user, idempotency_key, data):
         raise e
     except Exception as e:
         raise Exception(f"failed to create order: {str(e)}")
+
+@transaction.atomic
+def cancel_order(user, order_id):
+    try:
+        order = Order.objects.filter(id=order_id, buyer=user).first()
+    
+        if order is None:
+            raise OrderNotFound("order not found")
+
+        if order.status != "CREATED" and order.status != "PAID":
+            raise CancelNotAllowed("cancel not allowed", order.status)
+
+        try:
+            b2b_client.unreserve_skus(OrderSerializer(order).data)
+    
+            order.status = "CANCELED"
+        except requests.ConnectionError as e:
+            order.status = "CANCEL_PENDING"
+
+        order.save()
+
+        return OrderSerializer(order).data
+    except OrderNotFound as e:
+        raise e
+    except CancelNotAllowed as e:
+        raise e
+        

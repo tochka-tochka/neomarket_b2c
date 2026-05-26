@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 import os
 from pathlib import Path
 from datetime import timedelta
+from celery.schedules import crontab
 
 from dotenv import load_dotenv
 
@@ -141,4 +142,18 @@ SIMPLE_JWT = {
     
     "ROTATE_REFRESH_TOKENS": True,
     "BLACKLIST_AFTER_ROTATION": True,
+}
+
+CELERY_BROKER_URL = 'amqp://guest:guest@localhost:5672//'
+CELERY_RESULT_BACKEND = None
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'Asia/Yekaterinburg'
+
+CELERY_BEAT_SCHEDULE = {
+    'resend-cancelled-orders-every-minute': {
+        'task': 'tasks.resend_failed_cancelled_orders',
+        'schedule': crontab(minute='*'),
+    },
 }
