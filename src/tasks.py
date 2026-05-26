@@ -27,5 +27,6 @@ def resend_failed_cancelled_orders():
                     order.save()
                 except requests.ConnectionError:
                     pass
+        logging.info(f"Processed {len(orders)} orders.")
                 
     return f"Processed {len(orders)} orders."
