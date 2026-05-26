@@ -65,3 +65,17 @@ def get_category(category_id: uuid.UUID, include_product_count: bool, lang: str 
 def get_category_filter(category_id: uuid.UUID):
     r = session.get(f"http://{B2B_HOST}/api/v1/categories/{category_id}/filters")
     return r.json()
+
+
+def __make_filters_query_params(filters: dict[str, list[str]]) -> list[str]:
+    r = []
+    for filter_name, filter_values in filters.items():
+        for val in filter_values:
+            r.append(f"filters[{filter_name}]={val}")
+    return r
+
+
+def get_catalog_facets(category_id, filters: dict[str, list[str]]):
+    filters_string = "&".join(__make_filters_query_params(filters))
+    r = session.get(f"http://{B2B_HOST}/api/v1/catalog/facets?category_id={category_id}&" + filters_string)
+    return r.json()

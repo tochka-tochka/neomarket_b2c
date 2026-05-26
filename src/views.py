@@ -1,12 +1,14 @@
 import logging
+import re
 import traceback
 import uuid
+from collections import defaultdict
 from typing import Literal
 
-from django.http import JsonResponse
+from django.http import JsonResponse, QueryDict
 from rest_framework.views import APIView
 
-from src.services.categories.get import get_category, get_tree_categories, get_category_filter
+from src.services.categories.get import get_category, get_tree_categories, get_category_filter, get_catalog_facets
 
 
 class CategoryView(APIView):
@@ -29,3 +31,20 @@ class CategoriesView(APIView):
 class CategoryFilterView(APIView):
     def get(self, request, id: uuid.UUID):
         return JsonResponse(get_category_filter(id), safe=False)
+
+
+def parse_query_filters(filter_param_name: str, query_dict: QueryDict) -> dict[str, list[str]]:
+    result = defaultdict(list)
+    for key in query_dict:
+        r = re.search(filter_param_name + r"\[(\w+)\]", key)
+        if r:
+            result[r.group(1)].append(query_dict[key])
+
+    return result
+
+
+class CatalogFacets(APIView):
+    def get(self, request):
+        category_id = request.GET.get('category_id')
+        filters = parse_query_filters('filters', request.GET)
+        return JsonResponse(get_catalog_facets(category_id, filters), safe=False)
