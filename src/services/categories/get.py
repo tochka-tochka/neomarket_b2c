@@ -65,3 +65,5 @@ def get_category(category_id: uuid.UUID, include_product_count: bool, lang: str 
 def get_category_filter(category_id: uuid.UUID):
     r = session.get(f"http://{B2B_HOST}/api/v1/categories/{category_id}/filters")
     return r.json()
+
+

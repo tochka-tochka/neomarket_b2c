@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
 import os
+import sys
 from pathlib import Path
 from datetime import timedelta
 from celery.schedules import crontab
@@ -89,6 +90,9 @@ DATABASES = {
         "PASSWORD": os.environ.get("DB_PASSWORD"),
         "HOST": os.environ.get("DB_HOST"),
         "PORT": "5432",
+        "TEST":{
+            "NAME": "db.sqlite3"
+        }
     }
 }
 
