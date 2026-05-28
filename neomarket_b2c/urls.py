@@ -16,8 +16,24 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from rest_framework_simplejwt.views import (
+    TokenObtainPairView,
+    TokenRefreshView,
+)
+from src.views.reg import RegisterView
+from src.views.category import CategoriesView, CategoryView, CategoryFilterView
+from src.views.orders import OrdersView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path("api/v1/", include("src.urls"))
+
+    path('api/v1/reg', RegisterView.as_view(), name='register'),
+    path('api/v1/login', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('api/v1/login/refresh', TokenRefreshView.as_view(), name='token_refresh'),
+
+    path("api/v1/categories", CategoriesView.as_view()),
+    path("api/v1/categories/<uuid:id>", CategoryView.as_view()),
+    path("api/v1/categories/<uuid:id>/filters", CategoryFilterView.as_view()),
+
+    path("api/v1/orders", OrdersView.as_view(), name="orders"),
 ]
