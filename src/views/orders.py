@@ -9,7 +9,14 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from src.serializers.reg import RegisterSerializer
-from src.services.orders import BadRequestException, ConflictError, create_order
+from src.services.orders import (
+    BadRequestException,
+    CancelNotAllowed,
+    ConflictError,
+    OrderNotFound,
+    create_order,
+    cancel_order,
+)
 
 
 @method_decorator(csrf_exempt, name="dispatch")
@@ -50,6 +57,32 @@ class OrdersView(APIView):
                     "code": "RESERVE_FAILED",
                     "message": str(e),
                     "failed_items": e.conflicts,
+                },
+                status=409,
+            )
+        except Exception as e:
+            return JsonResponse({"code": "SERVER_ERROR", "message": str(e)}, status=500)
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+class OrdersDetailView(APIView):
+    access_classes = [IsAuthenticated]
+    parser_classes = [JSONParser]
+
+    def delete(self, request, id):
+        try:
+            canceled_order = cancel_order(request.user, id)
+            return JsonResponse(canceled_order, status=200)
+        except OrderNotFound:
+            return JsonResponse(
+                {"code": "ORDER_NOT_FOUND", "message": "order not found"}, status=404
+            )
+        except CancelNotAllowed as e:
+            return JsonResponse(
+                {
+                    "code": "CANCEL_NOT_ALLOWED",
+                    "message": str(e),
+                    "current_status": e.current_status,
                 },
                 status=409,
             )

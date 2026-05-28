@@ -6,7 +6,7 @@ from src.models.orders import Address, Order, OrderItem, PaymentMethod, StatusHi
 class PaymentMethodSerializer(serializers.ModelSerializer):
     class Meta:
         model = PaymentMethod
-        fields = ["id", "type", "card_list4", "card_brand", "is_default", "created_at"]
+        fields = ["id", "type", "card_last4", "card_brand", "is_default", "created_at"]
 
 
 class AddressSerializer(serializers.ModelSerializer):

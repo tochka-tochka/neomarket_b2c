@@ -24,7 +24,7 @@ from rest_framework_simplejwt.views import (
 from src.views.catalog import CatalogFacetsView, CatalogProductsView
 from src.views.reg import RegisterView
 from src.views.category import CategoriesView, CategoryView, CategoryFilterView
-from src.views.orders import OrdersView
+from src.views.orders import OrdersView, OrdersDetailView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -40,4 +40,5 @@ urlpatterns = [
     path("api/v1/catalog/products", CatalogProductsView.as_view()),
 
     path("api/v1/orders", OrdersView.as_view(), name="orders"),
+    path("api/v1/orders/<uuid:id>", OrdersDetailView.as_view(), name="order-detail"),
 ]
