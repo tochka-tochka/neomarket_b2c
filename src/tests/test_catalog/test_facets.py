@@ -7,7 +7,7 @@ from rest_framework.test import APIClient
 
 
 class GetFacetsTestCase(TestCase):
-    @patch('src.services.catalog.views.get_catalog_facets')
+    @patch('src.views.catalog.get_catalog_facets')
     def test_facets_return_counts_per_filter_value(self, get_fake_facets):
         client = APIClient()
         facet_retval = {

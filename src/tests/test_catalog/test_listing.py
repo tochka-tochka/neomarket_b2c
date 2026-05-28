@@ -7,7 +7,7 @@ from rest_framework.test import APIClient
 
 
 class CatalogListingTestCase(TestCase):
-    @patch('src.services.catalog.views.get_catalog_products')
+    @patch('src.views.catalog.get_catalog_products')
     def test_catalog_returns_filtered_sorted_products(self, get_fake_products):
         client = APIClient()
         catalog_retval = {
@@ -51,11 +51,13 @@ class CatalogListingTestCase(TestCase):
         }
         get_fake_products.return_value = catalog_retval
         r = client.get('/api/v1/catalog/products?filter[category_id]=3fa85f64-5717-4562-b3fc-2c963f66afa6')
+        print(r.status_code)
+        print(r.content)
         resp_json = json.loads(r.content)
         self.assertEqual(resp_json, catalog_retval)
         self.assertTrue(get_fake_products.called)
 
-    @patch('src.services.catalog.views.get_catalog_products')
+    @patch('src.views.catalog.get_catalog_products')
     def test_b2b_unavailable_returns_502(self, get_fake_products):
         client = APIClient()
         get_fake_products.side_effect = requests.exceptions.ConnectionError()
