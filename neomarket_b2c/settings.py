@@ -29,6 +29,7 @@ load_dotenv()
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = "django-insecure-3ybl7bopg^s1))#_a*%a5kgvg*he6-ft(ynxb+-5w)ig*%4c5%"
 
+B2B_SERVICE_KEY = os.environ.get("B2B_SERVICE_KEY")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
@@ -89,7 +90,7 @@ DATABASES = {
         "USER": os.environ.get("DB_USER"),
         "PASSWORD": os.environ.get("DB_PASSWORD"),
         "HOST": os.environ.get("DB_HOST"),
-        "PORT": "5432",
+        "PORT": "5431",
         "TEST":{
             "NAME": "db.sqlite3"
         }
@@ -136,7 +137,9 @@ STATIC_URL = "static/"
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",
-    )
+    ),
+    "EXCEPTION_HANDLER": "src.errors.custom_exception_handler"
+
 }
 
 SIMPLE_JWT = {
