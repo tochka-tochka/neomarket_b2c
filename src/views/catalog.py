@@ -3,6 +3,7 @@ from django.http import JsonResponse
 from rest_framework.request import Request
 from rest_framework.views import APIView
 
+from src.errors import NeomarketServiceError, NeomarketRequestError
 from src.services.catalog.facets import get_catalog_facets
 from src.services.catalog.products import get_catalog_products
 from src.services.catalog.utils import parse_query_filters
@@ -19,17 +20,9 @@ class CatalogProductsView(APIView):
                 filters=parse_query_filters("filter", request.query_params)
             )
         except requests.exceptions.ConnectionError:
-            return JsonResponse(
-                {"message": "Catalog unavailable"},
-                status=503,
-                safe=False,
-            )
+            raise NeomarketServiceError("Category service temporarily unavailable", "B2B_UNAVAILABLE")
         except ValueError as e:
-            return JsonResponse(
-                {"message": str(e)},
-                status=400,
-                safe=False,
-            )
+            raise NeomarketRequestError(str(e), "BAD_PARAM")
         return JsonResponse(
             products,
             safe=False

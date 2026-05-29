@@ -6,6 +6,7 @@ from typing import Literal
 from django.http import JsonResponse
 from rest_framework.views import APIView
 
+from src.errors import NeomarketServiceError
 from src.services.categories.get import get_category, get_tree_categories, get_category_filter
 
 
@@ -18,7 +19,7 @@ class CategoryView(APIView):
             return JsonResponse(category, status=200)
         except Exception as e:
             logging.error('\n'.join(traceback.format_exception(e)))
-            return JsonResponse({"message": "Category service temporarily unavailable"}, status=503)
+            raise NeomarketServiceError("Category service temporarily unavailable", "B2B_UNAVAILABLE")
 
 
 class CategoriesView(APIView):
