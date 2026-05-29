@@ -1,4 +1,5 @@
 import uuid
+from typing import Iterable
 
 from requests import Session
 
@@ -37,20 +38,38 @@ __categories_tree = None
 __known_flat_categories = None
 
 
-def get_flat_categories():
+def get_raw_categories():
     r = session.get(f"http://{B2B_HOST}/api/v1/categories")
     return r.json()["categories"]
 
 
 def get_tree_categories():
     global __categories_tree, __known_flat_categories
-    flat_categories = get_flat_categories()
+    flat_categories = get_raw_categories()
 
     if __categories_tree is None or __known_flat_categories != flat_categories:
         __categories_tree = make_tree(flat_categories)
         __known_flat_categories = flat_categories
 
     return __categories_tree
+
+
+def __tree_to_flat_categories(tree, level=0, path=None) -> Iterable:
+    current_path = (path or []) + [tree["name"]]
+    yield {
+        "id": tree["id"],
+        "name": tree["name"],
+        "parent_id": tree["parent_id"],
+        "level": level,
+        "path": current_path
+    }
+    for cat in __tree_to_flat_categories(tree["children"], level + 1, current_path):
+        yield cat
+
+
+def get_flat_categories():
+    tree = get_tree_categories()
+    return __tree_to_flat_categories(tree)
 
 
 def get_category(category_id: uuid.UUID, include_product_count: bool, lang: str = "ru"):
@@ -65,5 +84,3 @@ def get_category(category_id: uuid.UUID, include_product_count: bool, lang: str 
 def get_category_filter(category_id: uuid.UUID):
     r = session.get(f"http://{B2B_HOST}/api/v1/categories/{category_id}/filters")
     return r.json()
-
-

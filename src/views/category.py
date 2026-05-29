@@ -7,7 +7,7 @@ from django.http import JsonResponse
 from rest_framework.views import APIView
 
 from src.errors import NeomarketServiceError
-from src.services.categories.get import get_category, get_tree_categories, get_category_filter
+from src.services.categories.get import get_category, get_tree_categories, get_category_filter, get_flat_categories
 
 
 class CategoryView(APIView):
@@ -23,6 +23,11 @@ class CategoryView(APIView):
 
 
 class CategoriesView(APIView):
+    def get(self, request):
+        return JsonResponse(get_flat_categories(), safe=False)
+
+
+class CategoriesTreeView(APIView):
     def get(self, request):
         return JsonResponse(get_tree_categories(), safe=False)
 

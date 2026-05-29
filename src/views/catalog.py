@@ -32,5 +32,5 @@ class CatalogProductsView(APIView):
 class CatalogFacetsView(APIView):
     def get(self, request):
         category_id = request.GET.get('category_id')
-        filters = parse_query_filters('filters', request.GET)
+        filters = parse_query_filters('filter', request.GET)
         return JsonResponse(get_catalog_facets(category_id, filters), safe=False)

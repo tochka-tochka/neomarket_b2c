@@ -89,7 +89,7 @@ DATABASES = {
         "USER": os.environ.get("DB_USER"),
         "PASSWORD": os.environ.get("DB_PASSWORD"),
         "HOST": os.environ.get("DB_HOST"),
-        "PORT": "5432",
+        "PORT": "5431",
         "TEST":{
             "NAME": "db.sqlite3"
         }
