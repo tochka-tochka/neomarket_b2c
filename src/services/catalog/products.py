@@ -1,5 +1,6 @@
 from typing import Literal
 
+from neomarket_b2c.settings import B2B_SERVICE_KEY
 from src.services.catalog.facets import make_filters_query_params
 from src.services.categories.get import session, B2B_HOST
 
@@ -14,6 +15,6 @@ def get_catalog_products(limit: int, offset: int, q: str, sort: SortType, filter
     # TODO: maybe use `params`?
     r = session.get(f"http://{B2B_HOST}/api/v1/public/products?category_id={category_id}&"
                     f"limit={limit}&offset={offset}&q={q}&sort={sort}&" + filters_string,
-                    headers={"X-Service-Key": "key"})
+                    headers={"X-Service-Key": B2B_SERVICE_KEY})
     print(r.text)
     return r.json()
