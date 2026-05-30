@@ -7,6 +7,11 @@ from interservice_connection.b2b_http_client.main import b2b_client
 from src.models.orders import Order, OrderItem, OrderOperations, OrderStatus
 from src.serializers.orders import OrderSerializer
 
+class AccessDenied(Exception):
+    pass
+
+class OrderNotFound(Exception):
+    pass
 
 class ReserveFailed(Exception):
     pass
@@ -14,11 +19,8 @@ class ReserveFailed(Exception):
 class BadRequestException(Exception):
     pass
 
-class OrderNotFound(Exception):
-    pass
-    
 class CancelNotAllowed(Exception):
-    def __ini__(self, message, current_status):
+    def __init__(self, message, current_status):
         super().__init__(message)
         self.current_status = current_status
 

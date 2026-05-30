@@ -11,8 +11,10 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
 import os
+import sys
 from pathlib import Path
 from datetime import timedelta
+from celery.schedules import crontab
 
 from dotenv import load_dotenv
 
@@ -27,6 +29,7 @@ load_dotenv()
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = "django-insecure-3ybl7bopg^s1))#_a*%a5kgvg*he6-ft(ynxb+-5w)ig*%4c5%"
 
+B2B_SERVICE_KEY = os.environ.get("B2B_SERVICE_KEY")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
@@ -87,7 +90,10 @@ DATABASES = {
         "USER": os.environ.get("DB_USER"),
         "PASSWORD": os.environ.get("DB_PASSWORD"),
         "HOST": os.environ.get("DB_HOST"),
-        "PORT": "5432",
+        "PORT": "5431",
+        "TEST":{
+            "NAME": "db.sqlite3"
+        }
     }
 }
 
@@ -131,7 +137,9 @@ STATIC_URL = "static/"
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",
-    )
+    ),
+    "EXCEPTION_HANDLER": "src.errors.custom_exception_handler"
+
 }
 
 SIMPLE_JWT = {
@@ -141,4 +149,18 @@ SIMPLE_JWT = {
     
     "ROTATE_REFRESH_TOKENS": True,
     "BLACKLIST_AFTER_ROTATION": True,
+}
+
+CELERY_BROKER_URL = 'amqp://guest:guest@localhost:5672//'
+CELERY_RESULT_BACKEND = None
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'Asia/Yekaterinburg'
+
+CELERY_BEAT_SCHEDULE = {
+    'resend-cancelled-orders-every-minute': {
+        'task': 'tasks.resend_failed_cancelled_orders',
+        'schedule': crontab(minute='*'),
+    },
 }
