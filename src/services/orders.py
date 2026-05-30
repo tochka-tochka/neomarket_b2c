@@ -2,6 +2,7 @@ from rest_framework import status
 import uuid
 import requests
 from django.db import transaction
+from django.db.models import Q
 
 from interservice_connection.b2b_http_client.main import b2b_client
 from src.models.orders import Order, OrderItem, OrderOperations, OrderStatus
@@ -17,6 +18,9 @@ class ReserveFailed(Exception):
     pass
 
 class BadRequestException(Exception):
+    pass
+
+class InvalidPaginationParam(Exception):
     pass
 
 class CancelNotAllowed(Exception):
@@ -115,7 +119,7 @@ def create_order(user, idempotency_key, data):
 def cancel_order(user, order_id):
     try:
         order = Order.objects.filter(id=order_id, buyer=user).first()
-    
+
         if order is None:
             raise OrderNotFound("order not found")
 
@@ -124,10 +128,10 @@ def cancel_order(user, order_id):
 
         try:
             b2b_client.unreserve_skus(OrderSerializer(order).data)
-    
-            order.status = OrderStatus.CANCELLED
-        except requests.ConnectionError:
-            order.status = OrderStatus.CANCEL_PENDING
+
+            order.status = "CANCELED"
+        except requests.ConnectionError as e:
+            order.status = "CANCEL_PENDING"
 
         order.save()
 
@@ -136,4 +140,48 @@ def cancel_order(user, order_id):
         raise e
     except CancelNotAllowed as e:
         raise e
-        
+
+def get_orders(user, status, limit, offset):
+    try:
+        query = Q(buyer=user)
+
+        if status is not None:
+            query &= Q(status=status)
+
+        try:
+            limit = int(limit)
+            if limit <= 0:
+                raise InvalidPaginationParam("limit must be greater 0")
+            if limit > 100:
+                raise InvalidPaginationParam("limit must be less 100")
+        except ValueError:
+            raise InvalidPaginationParam("limit must be a number")
+
+        if offset is None:
+            offset = 0
+        try:
+            offset = int(offset)
+            if offset < 0:
+                raise InvalidPaginationParam("offset must be greater or equal 0")
+        except ValueError:
+            raise InvalidPaginationParam("offset must be a number")
+
+        count = Order.objects.filter(query).count()
+
+        orders = Order.objects.filter(query)[int(offset): int(offset)+int(limit)]
+
+        return OrderSerializer(orders, many=True).data, count, int(limit), int(offset)
+    except Exception as e:
+        raise e
+
+def get_order_by_id(user, id):
+    try:
+        order = Order.objects.filter(buyer=user, id=id).first()
+        if order is None:
+            raise OrderNotFound()
+
+        return OrderSerializer(order).data
+    except OrderNotFound as e:
+        raise e
+    except Exception as e:
+        raise e

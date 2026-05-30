@@ -4,19 +4,19 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.parsers import JSONParser
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework_simplejwt.tokens import RefreshToken
 
-from src.serializers.reg import RegisterSerializer
 from src.services.orders import (
     BadRequestException,
     CancelNotAllowed,
     ConflictError,
+    InvalidPaginationParam,
     OrderNotFound,
     ReserveFailed,
     create_order,
     cancel_order,
+    get_order_by_id,
+    get_orders,
 )
 
 
@@ -67,6 +67,26 @@ class OrdersView(APIView):
         except Exception:
             return JsonResponse({"code": "SERVER_ERROR"}, status=500)
 
+    def get(self, request):
+        try:
+            orders, count, limit, offset = get_orders(
+                request.user,
+                request.query_params.get("status"),
+                request.query_params.get("limit"),
+                request.query_params.get("offset"),
+            )
+
+            return JsonResponse(
+                {"items": orders, "count": count, "limit": limit, "offset": offset},
+                status=200,
+            )
+        except OrderNotFound:
+            return JsonResponse({"code": "NOT_FOUND", "message": "Order not found"})
+        except InvalidPaginationParam as e:
+            return JsonResponse({"code": "INVALID_REQUEST", "message": str(e)})
+        except Exception:
+            return JsonResponse({"code": "SERVER_ERROR"}, status=500)
+
 
 @method_decorator(csrf_exempt, name="dispatch")
 class OrdersDetailView(APIView):
@@ -90,5 +110,14 @@ class OrdersDetailView(APIView):
                 },
                 status=409,
             )
+        except Exception:
+            return JsonResponse({"code": "SERVER_ERROR"}, status=500)
+
+    def get(self, request, id):
+        try:
+            order = get_order_by_id(request.user, id)
+            return JsonResponse(order, status=200)
+        except OrderNotFound:
+            return JsonResponse({"code": "NOT_FOUND", "message": "Order not found"}, status=404)
         except Exception:
             return JsonResponse({"code": "SERVER_ERROR"}, status=500)
