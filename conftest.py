@@ -41,10 +41,15 @@ def force_close_connections(django_db_setup, django_db_blocker):
     yield
     with django_db_blocker.unblock():
         from django.db import connection
-        with connection.cursor() as cursor:
-            cursor.execute("""
-                SELECT pg_terminate_backend(pg_stat_activity.pid)
-                FROM pg_stat_activity
-                WHERE pg_stat_activity.datname = current_database()
-                  AND pid <> pg_backend_pid();
-            """)
+        if connection.vendor == "postgresql":
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    """
+                    SELECT pg_terminate_backend(pg_stat_activity.pid)
+                    FROM pg_stat_activity
+                    WHERE pg_stat_activity.datname = current_database()
+                      AND pid <> pg_backend_pid();
+                """
+                )
+        else:
+            pass
