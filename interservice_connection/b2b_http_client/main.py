@@ -19,6 +19,23 @@ class B2B_client:
         except requests.ConnectionError as e:
             raise e
 
+    def reserve_skus(self, idempotency_key, order_id, order_items):
+        try:
+            reserve_items = []
+            for item in order_items:
+                reserve_items.append({
+                    "sku_id": item["sku_id"],
+                    "quantity": item["quantity"]
+                })
+            response = self.session.post(f"{self.b2b_url}/api/v1/inventory/reserve", data={
+                "idempotency_key": idempotency_key,
+                "order_id": order_id,
+                "items": reserve_items
+            })
+            return response
+        except requests.ConnectionError as e:
+            raise e
+
     def unreserve_skus(self, order):
         try:
             items = []

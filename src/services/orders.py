@@ -1,14 +1,19 @@
+from rest_framework import status
+import uuid
 import requests
 from django.db import transaction
 
 from interservice_connection.b2b_http_client.main import b2b_client
-from src.models.orders import Order, OrderItem, OrderOperations
+from src.models.orders import Order, OrderItem, OrderOperations, OrderStatus
 from src.serializers.orders import OrderSerializer
 
 class AccessDenied(Exception):
     pass
 
 class OrderNotFound(Exception):
+    pass
+
+class ReserveFailed(Exception):
     pass
 
 class BadRequestException(Exception):
@@ -60,11 +65,17 @@ def create_order(user, idempotency_key, data):
                 failed.append({"sku_id": item["sku_id"], "reason": "PRODUCT_BLOCKED"})
             elif sku["product"]["deleted"]:
                 failed.append({"sku_id": item["sku_id"], "reason": "PRODUCT_DELETED"})
-            elif sku["reserved_quantity"] < item["quantity"]:
+            elif sku["active_quantity"] < item["quantity"]:
                 failed.append({"sku_id": item["sku_id"], "reason": "RESERVE_FAILED"})
 
         if failed:
             raise ConflictError("failed to reserve items", failed)
+
+        order_id = uuid.uuid4()
+        
+        response = b2b_client.reserve_skus(idempotency_key, order_id, data["items"])
+        if response.status_code == status.HTTP_409_CONFLICT:
+            raise ReserveFailed(response.json())
 
         order = Order.objects.create(
             buyer=user,
@@ -108,15 +119,15 @@ def cancel_order(user, order_id):
         if order is None:
             raise OrderNotFound("order not found")
 
-        if order.status != "CREATED" and order.status != "PAID":
+        if order.status != OrderStatus.CREATED and order.status != OrderStatus.PAID:
             raise CancelNotAllowed("cancel not allowed", order.status)
 
         try:
             b2b_client.unreserve_skus(OrderSerializer(order).data)
     
-            order.status = "CANCELED"
-        except requests.ConnectionError as e:
-            order.status = "CANCEL_PENDING"
+            order.status = OrderStatus.CANCELLED
+        except requests.ConnectionError:
+            order.status = OrderStatus.CANCEL_PENDING
 
         order.save()
 

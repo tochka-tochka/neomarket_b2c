@@ -14,6 +14,7 @@ from src.services.orders import (
     CancelNotAllowed,
     ConflictError,
     OrderNotFound,
+    ReserveFailed,
     create_order,
     cancel_order,
 )
@@ -41,13 +42,14 @@ class OrdersView(APIView):
                 {
                     "code": "INVALID_REQUEST",
                     "message": str(e),
-                }
+                },
+                status=400
             )
         except requests.ConnectionError:
             return JsonResponse(
                 {
                     "code": "B2B_UNAVAILABLE",
-                    "message": "Сервис товаров временно недоступен, попробуйте позже",
+                    "message": "Service is unavailable right now",
                 },
                 status=503,
             )
@@ -60,8 +62,10 @@ class OrdersView(APIView):
                 },
                 status=409,
             )
-        except Exception as e:
-            return JsonResponse({"code": "SERVER_ERROR", "message": str(e)}, status=500)
+        except ReserveFailed as e:
+            return JsonResponse(str(e), status=409)
+        except Exception:
+            return JsonResponse({"code": "SERVER_ERROR"}, status=500)
 
 
 @method_decorator(csrf_exempt, name="dispatch")
@@ -86,5 +90,5 @@ class OrdersDetailView(APIView):
                 },
                 status=409,
             )
-        except Exception as e:
-            return JsonResponse({"code": "SERVER_ERROR", "message": str(e)}, status=500)
+        except Exception:
+            return JsonResponse({"code": "SERVER_ERROR"}, status=500)
