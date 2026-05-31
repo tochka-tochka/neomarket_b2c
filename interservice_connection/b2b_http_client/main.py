@@ -27,7 +27,7 @@ class B2B_client:
                     "sku_id": item["sku_id"],
                     "quantity": item["quantity"]
                 })
-            response = self.session.post(f"{self.b2b_url}/api/v1/inventory/reserve", data={
+            response = self.session.post(f"{self.b2b_url}/api/v1/inventory/reserve", json={
                 "idempotency_key": idempotency_key,
                 "order_id": order_id,
                 "items": reserve_items
@@ -44,7 +44,7 @@ class B2B_client:
                     "sku_id": item["sku_id"],
                     "quantity": item["quantity"]
                 })
-            response = self.session.post(f"{self.b2b_url}/api/v1/inventory/unreserve", data={
+            response = self.session.post(f"{self.b2b_url}/api/v1/inventory/unreserve", json={
                 "order_id": order["id"],
                 "items": items
             })

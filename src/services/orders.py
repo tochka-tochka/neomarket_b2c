@@ -17,6 +17,9 @@ class OrderNotFound(Exception):
 class ReserveFailed(Exception):
     pass
 
+class UnreserveFailed(Exception):
+    pass
+
 class BadRequestException(Exception):
     pass
 
@@ -118,23 +121,34 @@ def create_order(user, idempotency_key, data):
 @transaction.atomic
 def cancel_order(user, order_id):
     try:
+        existing = OrderOperations.objects.filter(
+            order_id=order_id
+        ).first()
+        if existing:
+            return OrderSerializer(existing.order).data
         order = Order.objects.filter(id=order_id, buyer=user).first()
 
         if order is None:
             raise OrderNotFound("order not found")
 
-        if order.status != OrderStatus.CREATED and order.status != OrderStatus.PAID:
+        if order.status != OrderStatus.CREATED and order.status != OrderStatus.PAID and order.status != OrderStatus.ASSEMBLING:
             raise CancelNotAllowed("cancel not allowed", order.status)
 
         try:
-            b2b_client.unreserve_skus(OrderSerializer(order).data)
-
-            order.status = "CANCELED"
-        except requests.ConnectionError as e:
-            order.status = "CANCEL_PENDING"
+            response = b2b_client.unreserve_skus(OrderSerializer(order).data)
+            if response.status_code != status.HTTP_200_OK:
+                order.status = OrderStatus.CANCEL_PENDING
+            else:
+                order.status = OrderStatus.CANCELLED
+        except requests.ConnectionError:
+            order.status = OrderStatus.CANCEL_PENDING
 
         order.save()
 
+        OrderOperations.objects.create(
+            idempotency_key = uuid.uuid4(),
+            order = order
+        )
         return OrderSerializer(order).data
     except OrderNotFound as e:
         raise e

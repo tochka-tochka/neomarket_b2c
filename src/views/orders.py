@@ -93,7 +93,21 @@ class OrdersDetailView(APIView):
     access_classes = [IsAuthenticated]
     parser_classes = [JSONParser]
 
-    def delete(self, request, id):
+    def get(self, request, id):
+        try:
+            order = get_order_by_id(request.user, id)
+            return JsonResponse(order, status=200)
+        except OrderNotFound:
+            return JsonResponse({"code": "NOT_FOUND", "message": "Order not found"}, status=404)
+        except Exception:
+            return JsonResponse({"code": "SERVER_ERROR"}, status=500)
+
+@method_decorator(csrf_exempt, name="dispatch")
+class OrderDeleteView(APIView):
+    access_classes = [IsAuthenticated]
+    parser_classes = [JSONParser]
+
+    def post(self, request, id):
         try:
             canceled_order = cancel_order(request.user, id)
             return JsonResponse(canceled_order, status=200)
@@ -110,14 +124,5 @@ class OrdersDetailView(APIView):
                 },
                 status=409,
             )
-        except Exception:
-            return JsonResponse({"code": "SERVER_ERROR"}, status=500)
-
-    def get(self, request, id):
-        try:
-            order = get_order_by_id(request.user, id)
-            return JsonResponse(order, status=200)
-        except OrderNotFound:
-            return JsonResponse({"code": "NOT_FOUND", "message": "Order not found"}, status=404)
         except Exception:
             return JsonResponse({"code": "SERVER_ERROR"}, status=500)
