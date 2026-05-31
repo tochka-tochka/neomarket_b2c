@@ -6,7 +6,7 @@ from rest_framework.parsers import JSONParser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 
-from src.services.orders import (
+from src.services.orders.orders import (
     BadRequestException,
     CancelNotAllowed,
     ConflictError,
@@ -64,8 +64,8 @@ class OrdersView(APIView):
             )
         except ReserveFailed as e:
             return JsonResponse(str(e), status=409)
-        except Exception:
-            return JsonResponse({"code": "SERVER_ERROR"}, status=500)
+        except Exception as e:
+            return JsonResponse({"code": "SERVER_ERROR", "msg": str(e)}, status=500)
 
     def get(self, request):
         try:
