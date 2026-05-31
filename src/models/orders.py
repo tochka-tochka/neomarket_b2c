@@ -129,3 +129,10 @@ class OrderOperations(models.Model):
 
     class Meta:
         db_table = "order_opearions"
+
+class FailedFulfillAttempts(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid4, editable=False)
+    payload = models.JSONField()
+
+    class Meta:
+        db_table = "failed_fulfill_attempts"

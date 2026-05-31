@@ -30,6 +30,7 @@ load_dotenv()
 SECRET_KEY = "django-insecure-3ybl7bopg^s1))#_a*%a5kgvg*he6-ft(ynxb+-5w)ig*%4c5%"
 
 B2B_SERVICE_KEY = os.environ.get("B2B_SERVICE_KEY")
+RABBITMQ_HOST = os.environ.get("RABBIT_MQ_HOST")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
@@ -90,7 +91,7 @@ DATABASES = {
         "USER": os.environ.get("DB_USER"),
         "PASSWORD": os.environ.get("DB_PASSWORD"),
         "HOST": os.environ.get("DB_HOST"),
-        "PORT": "5431",
+        "PORT": "5432",
         "TEST":{
             "NAME": "db.sqlite3"
         }
@@ -161,6 +162,10 @@ CELERY_TIMEZONE = 'Asia/Yekaterinburg'
 CELERY_BEAT_SCHEDULE = {
     'resend-cancelled-orders-every-minute': {
         'task': 'tasks.resend_failed_cancelled_orders',
+        'schedule': crontab(minute='*'),
+    },
+    'retry-fulfill-orders-every-minute': {
+        'task': 'tasks.retry_fulfill_orders',
         'schedule': crontab(minute='*'),
     },
 }
