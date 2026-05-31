@@ -2,8 +2,8 @@ import logging
 import requests
 from celery import shared_task
 from django.db import transaction
-from .models import Order
-from .serializers.orders import OrderSerializer
+from src.models.orders import Order
+from src.serializers.orders import OrderSerializer
 from interservice_connection.b2b_http_client.main import b2b_client
 
 logger = logging.getLogger(__name__)

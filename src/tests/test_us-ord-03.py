@@ -9,30 +9,29 @@ from src.tests.fixtures import test_address, test_payment_method
 
 
 @pytest.fixture
-def mock_b2b_unreserve():
-    with responses.RequestsMock(assert_all_requests_are_fired=False) as rsps:
-        b2b_url = "http://localhost:8010/api/v1/inventory/unreserve"
-        rsps.add(
-            method=responses.POST,
-            url=b2b_url,
-            json={
-                "unreserved": True,
-                "items": [
-                    {
-                        "sku_id": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
-                        "unreserved_quantity": 2,
-                        "remaining_stock": 10,
-                    },
-                    {
-                        "sku_id": "8a4e3f9c-1a2b-4c8d-9e5f-6b7a8c9d0e1f",
-                        "unreserved_quantity": 1,
-                        "remaining_stock": 5,
-                    },
-                ],
-            },
-            status=200,
-        )
-        yield rsps
+def mock_b2b_unreserve(responses):
+    b2b_url = "http://localhost:8010/api/v1/inventory/unreserve"
+    responses.add(
+        method=responses.POST,
+        url=b2b_url,
+        json={
+            "unreserved": True,
+            "items": [
+                {
+                    "sku_id": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
+                    "unreserved_quantity": 2,
+                    "remaining_stock": 10,
+                },
+                {
+                    "sku_id": "8a4e3f9c-1a2b-4c8d-9e5f-6b7a8c9d0e1f",
+                    "unreserved_quantity": 1,
+                    "remaining_stock": 5,
+                },
+            ],
+        },
+        status=200,
+    )
+    return responses
 
 
 @pytest.fixture
@@ -71,6 +70,16 @@ def order(request, test_user, test_address, test_payment_method):
     )
     return order
 
+@pytest.fixture
+def mock_b2b_connection_error(responses):
+    b2b_url = "http://localhost:8010/api/v1/inventory/unreserve"
+    responses.add(
+        method=responses.POST,
+        url=b2b_url,
+        status=503
+    )
+    return responses
+
 
 @pytest.mark.django_db
 class TestCancelOrder:
@@ -78,39 +87,39 @@ class TestCancelOrder:
         self, jwt_client, order, mock_b2b_unreserve
     ):
 
-        url = reverse("order-detail", args=[order.id])
+        url = reverse("order-cancel", args=[order.id])
 
-        response = jwt_client.delete(url)
+        response = jwt_client.post(url)
 
         order.refresh_from_db()
         assert response.status_code == status.HTTP_200_OK, response.json()
-        assert order.status == OrderStatus.CANCELED
+        assert order.status == OrderStatus.CANCELLED
 
-    def test_unreserve_failure_transitions_to_cancel_pending(self, jwt_client, order):
+    def test_unreserve_failure_transitions_to_cancel_pending(self, jwt_client, order, mock_b2b_connection_error):
 
-        url = reverse("order-detail", args=[order.id])
+        url = reverse("order-cancel", args=[order.id])
 
-        response = jwt_client.delete(url)
+        response = jwt_client.post(url)
 
         order.refresh_from_db()
         assert response.status_code == status.HTTP_200_OK, response.json()
         assert order.status == OrderStatus.CANCEL_PENDING
 
     @pytest.mark.parametrize("order", [OrderStatus.DELIVERED], indirect=True)
-    def test_cancel_assembling_order_returns_409(
-        self, jwt_client, order, mock_b2b_unreserve
+    def test_cancel_delivered_order_returns_409(
+        self, jwt_client, order
     ):
 
-        url = reverse("order-detail", args=[order.id])
+        url = reverse("order-cancel", args=[order.id])
 
-        response = jwt_client.delete(url)
+        response = jwt_client.post(url)
 
         order.refresh_from_db()
         assert response.status_code == status.HTTP_409_CONFLICT, response.json()
         assert response.json()["current_status"] == OrderStatus.DELIVERED
         assert order.status == OrderStatus.DELIVERED
 
-    def test_user_order_returns_404(self, jwt_client, mock_b2b_unreserve, test_address, test_payment_method):
+    def test_user_order_returns_404(self, jwt_client, test_address, test_payment_method):
         another_buyer = User.objects.create(
             username="another_user", email="another@example.com", password="12345"
         )
@@ -118,12 +127,12 @@ class TestCancelOrder:
             address=test_address,
             number="ORD-SKU",
             payment_method=test_payment_method,
-            status=status,
+            status=OrderStatus.PAID,
             buyer=another_buyer,
         )
 
-        url = reverse("order-detail", args=[order.id])
+        url = reverse("order-cancel", args=[order.id])
 
-        response = jwt_client.delete(url)
+        response = jwt_client.post(url)
 
         assert response.status_code == status.HTTP_404_NOT_FOUND, response.json()
