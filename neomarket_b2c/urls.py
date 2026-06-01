@@ -21,7 +21,7 @@ from rest_framework_simplejwt.views import (
     TokenRefreshView,
 )
 
-from src.views.catalog import CatalogFacetsView, CatalogProductsView
+from src.views.catalog import CatalogFacetsView, CatalogProductsView, BreadcrumbsView
 from src.views.reg import RegisterView
 from src.views.category import CategoriesView, CategoryView, CategoryFilterView, CategoriesTreeView
 from src.views.orders import OrdersView, OrdersDetailView
@@ -37,6 +37,7 @@ urlpatterns = [
     path("api/v1/catalog/categories/tree", CategoriesTreeView.as_view()),
     path("api/v1/catalog/categories/<uuid:id>", CategoryView.as_view()),
     path("api/v1/catalog/categories/<uuid:id>/filters", CategoryFilterView.as_view()),
+    path("api/v1/catalog/breadcrumbs", BreadcrumbsView.as_view()),
     path("api/v1/catalog/facets", CatalogFacetsView.as_view()),
     path("api/v1/catalog/products", CatalogProductsView.as_view()),
 

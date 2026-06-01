@@ -11,6 +11,10 @@ class NeomarketRequestError(APIException):
     status_code = 400
 
 
+class NeomarketUnprocessableError(APIException):
+    status_code = 422
+
+
 def custom_exception_handler(exc, context):
     response = exception_handler(exc, context)
     if not isinstance(exc, APIException):
