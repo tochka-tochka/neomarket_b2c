@@ -6,7 +6,7 @@ from typing import Literal
 from django.http import JsonResponse
 from rest_framework.views import APIView
 
-from src.errors import NeomarketServiceError
+from src.errors import NeomarketServiceError, NeomarketUnprocessableError
 from src.services.categories.get import get_category, get_tree_categories, get_category_filter, get_flat_categories
 
 
@@ -29,7 +29,10 @@ class CategoriesView(APIView):
 
 class CategoriesTreeView(APIView):
     def get(self, request):
-        return JsonResponse(get_tree_categories(), safe=False)
+        try:
+            return JsonResponse(get_tree_categories(), safe=False)
+        except KeyError:
+            raise NeomarketUnprocessableError("Broken category hierarchy", "BROKEN_HIERARCHY")
 
 
 class CategoryFilterView(APIView):
