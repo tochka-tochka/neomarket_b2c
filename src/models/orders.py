@@ -1,9 +1,9 @@
 from uuid import uuid4
-
-from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator, RegexValidator
 from django.db import models
 from django.db.models.fields.related import ForeignKey
+from django.conf import settings
+from django.contrib.auth import get_user_model
 
 
 class PaymentMethodType(models.TextChoices):
@@ -33,7 +33,7 @@ class PaymentMethod(models.Model):
     card_brand = models.TextField(choices=CardBrands)
     is_default = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
-    buyer = ForeignKey(User, on_delete=models.CASCADE, related_name="payment_methods")
+    buyer = ForeignKey('User', on_delete=models.CASCADE, related_name="payment_methods")
 
     class Meta:
         db_table = "payment_methods"
@@ -60,7 +60,7 @@ class Address(models.Model):
     is_default = models.BooleanField(default=False)
     comment = models.CharField(max_length=500)
     created_at = models.DateTimeField(auto_now_add=True)
-    buyer = ForeignKey(User, on_delete=models.CASCADE, related_name="addresses")
+    buyer = ForeignKey('User', on_delete=models.CASCADE, related_name="addresses")
 
     class Meta:
         db_table = "addresses"
@@ -79,7 +79,7 @@ class OrderStatus(models.TextChoices):
 class Order(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid4, editable=False)
     number = models.CharField()
-    buyer = models.ForeignKey(User, on_delete=models.CASCADE, related_name="orders")
+    buyer = models.ForeignKey('User', on_delete=models.CASCADE, related_name="orders")
     status = models.TextField(choices=OrderStatus)
     delivery_cost = models.IntegerField(default=0)
     address = models.ForeignKey(Address, on_delete=models.SET_NULL, null=True)
@@ -112,7 +112,7 @@ class OrderItem(models.Model):
         db_table = "order_items"
 
 
-class StatusHistory:
+class StatusHistory(models.Model):
     status = models.TextField(choices=OrderStatus)
     changed_at = models.DateTimeField(auto_now_add=True)
     comment = models.TextField(null=True, blank=True)
@@ -123,12 +123,14 @@ class StatusHistory:
     class Meta:
         db_table = "status_history"
 
+
 class OrderOperations(models.Model):
     idempotency_key = models.UUIDField(primary_key=True, default=uuid4, editable=False)
     order = models.ForeignKey(Order, on_delete=models.CASCADE)
 
     class Meta:
-        db_table = "order_opearions"
+        db_table = "order_operations"
+
 
 class FailedFulfillAttempts(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid4, editable=False)
