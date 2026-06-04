@@ -5,7 +5,7 @@ from django.db import transaction
 from django.db.models import Q
 
 from interservice_connection.b2b_http_client.main import b2b_client
-from src.models.orders import Order, OrderItem, OrderOperations, OrderStatus
+from src.models.orders import Order, OrderItem, OrderOperations, OrderStatus, OperationTypes
 from src.serializers.orders import OrderSerializer
 
 class AccessDenied(Exception):
@@ -49,7 +49,7 @@ def find_sku(products, sku_id):
 def create_order(user, idempotency_key, data):
     try:
         existing = OrderOperations.objects.filter(
-            idempotency_key=idempotency_key
+            idempotency_key=idempotency_key, type = OperationTypes.CREATE
         ).first()
         if existing:
             return OrderSerializer(existing.order).data
@@ -111,7 +111,8 @@ def create_order(user, idempotency_key, data):
 
         OrderOperations.objects.create(
             idempotency_key = idempotency_key,
-            order = order
+            order = order,
+            type = OperationTypes.CREATE
         )
         return OrderSerializer(order).data
     except BadRequestException as e:
@@ -127,7 +128,7 @@ def create_order(user, idempotency_key, data):
 def cancel_order(user, order_id):
     try:
         existing = OrderOperations.objects.filter(
-            order_id=order_id
+            order_id=order_id, type = OperationTypes.CANCEL
         ).first()
         if existing:
             return OrderSerializer(existing.order).data
@@ -152,7 +153,8 @@ def cancel_order(user, order_id):
 
         OrderOperations.objects.create(
             idempotency_key = uuid.uuid4(),
-            order = order
+            order = order,
+            type = OperationTypes.CANCEL
         )
         return OrderSerializer(order).data
     except OrderNotFound as e:

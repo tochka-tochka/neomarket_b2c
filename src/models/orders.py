@@ -123,10 +123,14 @@ class StatusHistory(models.Model):
     class Meta:
         db_table = "status_history"
 
+class OperationTypes(models.TextChoices):
+    CREATE = "CREATE"
+    CANCEL = "CANCEL"
 
 class OrderOperations(models.Model):
     idempotency_key = models.UUIDField(primary_key=True, default=uuid4, editable=False)
     order = models.ForeignKey(Order, on_delete=models.CASCADE)
+    type = models.TextField(choices=OperationTypes)
 
     class Meta:
         db_table = "order_operations"
