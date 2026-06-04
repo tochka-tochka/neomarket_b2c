@@ -11,6 +11,10 @@ class NeomarketRequestError(APIException):
     status_code = 400
 
 
+class NeomarketNotFoundError(APIException):
+    status_code = 404
+
+
 class NeomarketUnprocessableError(APIException):
     status_code = 422
 
