@@ -1,10 +1,11 @@
-import rest_framework.status
 import json
 import os
 
 import requests
+import rest_framework.status
 from requests import Session
 
+from neomarket_b2c.settings import B2B_SERVICE_KEY
 from src.models.orders import FailedFulfillAttempts
 
 
@@ -31,6 +32,7 @@ class B2B_client:
                 )
             response = self.session.post(
                 f"{self.b2b_url}/api/v1/inventory/reserve",
+                headers={"X-Service-Key": B2B_SERVICE_KEY or "SERVICE-KEY-NOT-FOUND"},
                 json={
                     "idempotency_key": idempotency_key,
                     "order_id": str(order_id),
@@ -48,6 +50,7 @@ class B2B_client:
                 items.append({"sku_id": item["sku_id"], "quantity": item["quantity"]})
             response = self.session.post(
                 f"{self.b2b_url}/api/v1/inventory/unreserve",
+                headers={"X-Service-Key": B2B_SERVICE_KEY or "SERVICE-KEY-NOT-FOUND"},
                 json={"order_id": order["id"], "items": items},
             )
             return response
@@ -61,6 +64,7 @@ class B2B_client:
                 items.append({"sku_id": item["sku_id"], "quantity": item["quantity"]})
             response = self.session.post(
                 f"{self.b2b_url}/api/v1/inventory/fulfill",
+                headers={"X-Service-Key": B2B_SERVICE_KEY or "SERVICE-KEY-NOT-FOUND"},
                 json={"order_id": order["id"], "items": items},
             )
             if response.status_code != rest_framework.status.HTTP_200_OK:
