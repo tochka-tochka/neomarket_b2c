@@ -22,7 +22,7 @@ from src.services.orders.orders import (
 
 @method_decorator(csrf_exempt, name="dispatch")
 class OrdersView(APIView):
-    access_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]
     parser_classes = [JSONParser]
 
     def post(self, request):
@@ -63,9 +63,15 @@ class OrdersView(APIView):
                 status=409,
             )
         except ReserveFailed as e:
-            return JsonResponse(str(e), status=409)
-        except Exception as e:
-            return JsonResponse({"code": "SERVER_ERROR", "msg": str(e)}, status=500)
+            return JsonResponse(
+                {
+                    "code": "RESERVE_FAILED",
+                    "message": str(e),
+                },
+                status=409,
+            )
+        except Exception:
+            return JsonResponse({"code": "SERVER_ERROR"}, status=500)
 
     def get(self, request):
         try:
@@ -90,7 +96,7 @@ class OrdersView(APIView):
 
 @method_decorator(csrf_exempt, name="dispatch")
 class OrdersDetailView(APIView):
-    access_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]
     parser_classes = [JSONParser]
 
     def get(self, request, id):
@@ -104,7 +110,7 @@ class OrdersDetailView(APIView):
 
 @method_decorator(csrf_exempt, name="dispatch")
 class OrderDeleteView(APIView):
-    access_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]
     parser_classes = [JSONParser]
 
     def post(self, request, id):

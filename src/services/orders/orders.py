@@ -91,6 +91,11 @@ def create_order(user, idempotency_key, data):
             address_id=data["address_id"],
         )
 
+        if len(sku["images"]) > 0:
+            preview_image = sku["images"][0]
+        else:
+            preview_image = ""
+
         for item in data["items"]:
             sku = find_sku(products, item["sku_id"])
             OrderItem.objects.create(
@@ -101,7 +106,7 @@ def create_order(user, idempotency_key, data):
                 quantity=item["quantity"],
                 unit_price=sku["price"],
                 line_total=item["quantity"] * sku["price"],
-                image_url=sku["images"][0]["url"] or "",
+                image_url=preview_image,
             )
 
         OrderOperations.objects.create(

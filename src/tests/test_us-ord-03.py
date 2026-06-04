@@ -1,6 +1,6 @@
 import pytest
 import responses
-from django.contrib.auth.models import User
+from src.models.user import User
 from django.urls import reverse
 from rest_framework import status
 
