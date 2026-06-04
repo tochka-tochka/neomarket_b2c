@@ -126,3 +126,10 @@ class GetCategoryTestCase(TestCase):
             }
         )
         self.assertEqual(r.status_code, 400)
+
+    @patch('src.views.category.get_category')
+    def test_unknown_category_returns_404(self, get_fake_category):
+        client = APIClient()
+        get_fake_category.return_value = None
+        r = client.get('/api/v1/catalog/categories/fc6ba7d8-9799-46e3-a0df-377cd72eb855')
+        self.assertEqual(r.status_code, 404)
