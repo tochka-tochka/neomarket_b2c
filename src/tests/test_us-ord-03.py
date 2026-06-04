@@ -144,7 +144,7 @@ class TestCancelOrder:
 
         assert response.status_code == status.HTTP_404_NOT_FOUND, response.json()
 
-    def test_checkout_creates_paid_order_with_fixed_prices(
+    def test_checkout_cancel_idempotency(
         self,
         jwt_client,
         test_address,
