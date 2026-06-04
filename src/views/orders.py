@@ -83,13 +83,13 @@ class OrdersView(APIView):
             )
 
             return JsonResponse(
-                {"items": orders, "count": count, "limit": limit, "offset": offset},
+                {"items": orders, "total_count": count, "limit": limit, "offset": offset},
                 status=200,
             )
         except OrderNotFound:
-            return JsonResponse({"code": "NOT_FOUND", "message": "Order not found"})
+            return JsonResponse({"code": "NOT_FOUND", "message": "Order not found"}, status=404)
         except InvalidPaginationParam as e:
-            return JsonResponse({"code": "INVALID_REQUEST", "message": str(e)})
+            return JsonResponse({"code": "INVALID_REQUEST", "message": str(e)}, status=400)
         except Exception:
             return JsonResponse({"code": "SERVER_ERROR"}, status=500)
 
