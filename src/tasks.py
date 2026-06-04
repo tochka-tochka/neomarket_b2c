@@ -44,11 +44,8 @@ def retry_fulfill_orders():
             return "No pending fulfill attempts orders found."
 
         for attempt in fulfill_attempt:
-                try:
-                    b2b_client.fulfill_order(attempt.payload)
-                    attempt.delete()
-                except requests.ConnectionError:
-                    pass
+            b2b_client.fulfill_order(attempt.payload)
+            attempt.delete()
         logging.info(f"Processed {len(fulfill_attempt)} orders.")
                 
     return f"Processed {len(fulfill_attempt)} orders."
