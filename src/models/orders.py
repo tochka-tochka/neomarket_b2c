@@ -126,6 +126,7 @@ class StatusHistory(models.Model):
 class OperationTypes(models.TextChoices):
     CREATE = "CREATE"
     CANCEL = "CANCEL"
+    FULFILL = "FULFILL"
 
 class OrderOperations(models.Model):
     idempotency_key = models.UUIDField(primary_key=True, default=uuid4, editable=False)
