@@ -1,4 +1,3 @@
-import json
 import os
 
 import requests
@@ -14,10 +13,22 @@ class B2B_client:
         self.session = Session()
         self.b2b_url = os.environ.get("B2B_URL")
 
-    def get_products_by_sku_ids(self, sku_ids):
+    def get_sku(self, sku_id):
         try:
-            products = self.session.get(
-                f"{self.b2b_url}/api/v1/products?ids={','.join(sku_ids)}"
+            sku = self.session.get(
+                f"{self.b2b_url}/api/v1/public/skus/{sku_id}",
+                headers={"X-Service-Key": B2B_SERVICE_KEY or "SERVICE-KEY-NOT-FOUND"},
+            )
+            return sku
+        except requests.ConnectionError as e:
+            raise e
+
+    def get_products(self, product_ids):
+        try:
+            products = self.session.post(
+                f"{self.b2b_url}/api/v1/public/products/batch",
+                headers={"X-Service-Key": B2B_SERVICE_KEY or "SERVICE-KEY-NOT-FOUND"},
+                json={"product_ids": product_ids},
             )
             return products
         except requests.ConnectionError as e:
