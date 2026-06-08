@@ -7,22 +7,27 @@ from django.urls import reverse
 from rest_framework import status
 
 from src.tests.fixtures import (
-    mock_b2b_get_skus_happy_response,
-    mock_b2b_get_skus_unhappy_response,
     mock_b2b_reserve_happy_response,
+    mock_products_happy_response,
+    mock_products_unhappy_response,
+    mock_sku1_happy_response,
+    mock_sku2_happy_response,
+    mock_sku2_unhappy_response,
     test_address,
     test_payment_method,
 )
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(transaction=True)
 class TestCreateOrder:
     def test_checkout_creates_paid_order_with_fixed_prices(
         self,
         jwt_client,
         test_address,
         test_payment_method,
-        mock_b2b_get_skus_happy_response,
+        mock_products_happy_response,
+        mock_sku1_happy_response,
+        mock_sku2_happy_response,
         mock_b2b_reserve_happy_response,
     ):
         url = reverse("orders")
@@ -61,7 +66,9 @@ class TestCreateOrder:
         jwt_client,
         test_address,
         test_payment_method,
-        mock_b2b_get_skus_unhappy_response,
+        mock_products_unhappy_response,
+        mock_sku1_happy_response,
+        mock_sku2_unhappy_response,
     ):
         url = reverse("orders")
 
@@ -99,7 +106,9 @@ class TestCreateOrder:
         jwt_client,
         test_address,
         test_payment_method,
-        mock_b2b_get_skus_happy_response,
+        mock_products_happy_response,
+        mock_sku1_happy_response,
+        mock_sku2_happy_response,
         mock_b2b_reserve_happy_response,
     ):
         url = reverse("orders")

@@ -1,30 +1,45 @@
-from rest_framework import status
 import uuid
+from functools import partial
+
 import requests
 from django.db import transaction
 from django.db.models import Q
+from rest_framework import status
 
 from interservice_connection.b2b_http_client.main import b2b_client
-from src.models.orders import Order, OrderItem, OrderOperations, OrderStatus, OperationTypes
+from src.models.orders import (
+    OperationTypes,
+    Order,
+    OrderItem,
+    OrderOperations,
+    OrderStatus,
+)
 from src.serializers.orders import OrderSerializer
+
 
 class AccessDenied(Exception):
     pass
 
+
 class OrderNotFound(Exception):
     pass
+
 
 class ReserveFailed(Exception):
     pass
 
+
 class UnreserveFailed(Exception):
     pass
+
 
 class BadRequestException(Exception):
     pass
 
+
 class InvalidPaginationParam(Exception):
     pass
+
 
 class CancelNotAllowed(Exception):
     def __init__(self, message, current_status):
@@ -49,7 +64,7 @@ def find_sku(products, sku_id):
 def create_order(user, idempotency_key, data):
     try:
         existing = OrderOperations.objects.filter(
-            idempotency_key=idempotency_key, type = OperationTypes.CREATE
+            idempotency_key=idempotency_key, type=OperationTypes.CREATE
         ).first()
         if existing:
             return OrderSerializer(existing.order).data
@@ -57,26 +72,45 @@ def create_order(user, idempotency_key, data):
         if not idempotency_key:
             raise BadRequestException("idempotency_key is required")
 
-        if data["items"] is None or len(data["items"]) == 0:
+        if not data.get("items"):
             raise BadRequestException("items can't be empty")
-
-        ids = [item["sku_id"] for item in data["items"]]
-        products = b2b_client.get_products_by_sku_ids(ids).json()
+            
+        for item in data["items"]:
+            if item.get("quantity", 0) < 1:
+                raise BadRequestException("quantity must be greater than or equal to 1")
 
         failed = []
+        sku_ids = [item["sku_id"] for item in data["items"]]
+        product_ids = []
+        
+        for id in sku_ids:
+            response = b2b_client.get_sku(id)
+            if response.status_code == status.HTTP_404_NOT_FOUND:
+                failed.append({"sku_id": id, "reason": "SKU_NOT_FOUND"})
+                continue
+            sku = response.json()
+            product_ids.append(sku["product_id"])
+
+        if failed:
+            raise ConflictError("failed to verify items", failed)
+
+        products = b2b_client.get_products(product_ids).json()
+
         for item in data["items"]:
             sku = find_sku(products, item["sku_id"])
-            if not sku:
-                failed.append({"sku_id": item["sku_id"], "reason": "SKU_NOT_FOUND"})
-            elif sku["product"]["status"] == "BLOCKED":
+            product = sku["product"]
+            
+            if product["status"] != "MODERATED":  # Соответствие шагу 9 диаграммы
+                failed.append({"sku_id": item["sku_id"], "reason": "PRODUCT_NOT_MODERATED"})
+            elif product["status"] == "BLOCKED":
                 failed.append({"sku_id": item["sku_id"], "reason": "PRODUCT_BLOCKED"})
-            elif sku["product"]["deleted"]:
+            elif product["deleted"]:
                 failed.append({"sku_id": item["sku_id"], "reason": "PRODUCT_DELETED"})
             elif sku["active_quantity"] < item["quantity"]:
                 failed.append({"sku_id": item["sku_id"], "reason": "RESERVE_FAILED"})
 
         if failed:
-            raise ConflictError("failed to reserve items", failed)
+            raise ConflictError("failed to validate items", failed)
 
         order_id = uuid.uuid4()
         
@@ -85,19 +119,17 @@ def create_order(user, idempotency_key, data):
             raise ReserveFailed(response.json())
 
         order = Order.objects.create(
+            id=order_id,
             buyer=user,
-            number="ORD-SKU",
+            number=f"ORD-{uuid.uuid4().hex[:8].upper()}",
             status="PAID",
             address_id=data["address_id"],
         )
 
-        if len(sku["images"]) > 0:
-            preview_image = sku["images"][0]
-        else:
-            preview_image = ""
-
         for item in data["items"]:
             sku = find_sku(products, item["sku_id"])
+            preview_image = sku["images"][0] if sku.get("images") else ""
+            
             OrderItem.objects.create(
                 order=order,
                 sku_id=item["sku_id"],
@@ -110,25 +142,22 @@ def create_order(user, idempotency_key, data):
             )
 
         OrderOperations.objects.create(
-            idempotency_key = idempotency_key,
-            order = order,
-            type = OperationTypes.CREATE
+            idempotency_key=idempotency_key, order=order, type=OperationTypes.CREATE
         )
+
         return OrderSerializer(order).data
-    except BadRequestException as e:
-        raise e
-    except requests.ConnectionError as e:
-        raise e
-    except ConflictError as e:
+
+    except (BadRequestException, ConflictError, ReserveFailed, requests.ConnectionError) as e:
         raise e
     except Exception as e:
         raise Exception(f"failed to create order: {str(e)}")
+
 
 @transaction.atomic
 def cancel_order(user, order_id):
     try:
         existing = OrderOperations.objects.filter(
-            order_id=order_id, type = OperationTypes.CANCEL
+            order_id=order_id, type=OperationTypes.CANCEL
         ).first()
         if existing:
             return OrderSerializer(existing.order).data
@@ -137,7 +166,11 @@ def cancel_order(user, order_id):
         if order is None:
             raise OrderNotFound("order not found")
 
-        if order.status != OrderStatus.CREATED and order.status != OrderStatus.PAID and order.status != OrderStatus.ASSEMBLING:
+        if (
+            order.status != OrderStatus.CREATED
+            and order.status != OrderStatus.PAID
+            and order.status != OrderStatus.ASSEMBLING
+        ):
             raise CancelNotAllowed("cancel not allowed", order.status)
 
         try:
@@ -152,15 +185,14 @@ def cancel_order(user, order_id):
         order.save()
 
         OrderOperations.objects.create(
-            idempotency_key = uuid.uuid4(),
-            order = order,
-            type = OperationTypes.CANCEL
+            idempotency_key=uuid.uuid4(), order=order, type=OperationTypes.CANCEL
         )
         return OrderSerializer(order).data
     except OrderNotFound as e:
         raise e
     except CancelNotAllowed as e:
         raise e
+
 
 def get_orders(user, status, limit, offset):
     try:
@@ -189,11 +221,12 @@ def get_orders(user, status, limit, offset):
 
         count = Order.objects.filter(query).count()
 
-        orders = Order.objects.filter(query)[int(offset): int(offset)+int(limit)]
+        orders = Order.objects.filter(query)[int(offset) : int(offset) + int(limit)]
 
         return OrderSerializer(orders, many=True).data, count, int(limit), int(offset)
     except Exception as e:
         raise e
+
 
 def get_order_by_id(user, id):
     try:
