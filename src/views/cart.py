@@ -79,7 +79,7 @@ class CartItemView(APIView):
 
         response_data = get_cart_response(identity_type, identity_value)
 
-        status_code = status.HTTP_201_CREATED if created else status.HTTP_200_OK
+        status_code = status.HTTP_200_OK
         return Response(response_data, status=status_code)
 
     def patch(self, request, sku_id):
@@ -131,7 +131,7 @@ class CartItemView(APIView):
 
 class CartValidateView(APIView):
 
-    def get(self, request):
+    def post(self, request):
 
         identity_type, identity_value = get_cart_identity(request)
 

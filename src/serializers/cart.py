@@ -4,7 +4,7 @@ from rest_framework import serializers
 class CartItemSerializer(serializers.Serializer):
 
     sku_id = serializers.UUIDField()
-    product_id = serializers.UUIDField()
+    product_id = serializers.UUIDField(allow_null=True, required=False)
     name = serializers.CharField()
     quantity = serializers.IntegerField(min_value=1)
     unit_price = serializers.IntegerField(min_value=0, help_text="Актуальная цена за единицу, копейки")

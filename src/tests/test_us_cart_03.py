@@ -29,7 +29,6 @@ def product_id():
 def test_add_sku_increments_quantity_if_already_in_cart(api_client, session_id, sku_id, product_id):
     """Повторное добавление того же SKU увеличивает quantity"""
 
-    # Мокаем get_sku_by_id (используется в CartItemView.post)
     with patch('src.views.cart.get_sku_by_id') as mock_get_sku:
         mock_get_sku.return_value = {
             'id': sku_id,
@@ -46,20 +45,18 @@ def test_add_sku_increments_quantity_if_already_in_cart(api_client, session_id, 
         api_client.credentials(HTTP_X_SESSION_ID=session_id)
         url = '/api/v1/cart/items'
 
-        # Первое добавление
         response1 = api_client.post(url, {
             'sku_id': sku_id,
             'quantity': 2
         }, format='json')
 
-        assert response1.status_code == 201
+        assert response1.status_code == 200
         assert response1.data['items_count'] == 2
 
         cart_items = CartItem.objects.filter(session_id=session_id)
         assert cart_items.count() == 1
         assert cart_items.first().quantity == 2
 
-        # Второе добавление
         response2 = api_client.post(url, {
             'sku_id': sku_id,
             'quantity': 3
@@ -77,14 +74,12 @@ def test_add_sku_increments_quantity_if_already_in_cart(api_client, session_id, 
 def test_get_cart_enriched_with_b2b_data(api_client, session_id, sku_id, product_id):
     """GET /cart обогащает данные из B2B"""
 
-    # Создаём позицию в корзине напрямую
     CartItem.objects.create(
         session_id=session_id,
         sku_id=sku_id,
         quantity=2
     )
 
-    # Мокаем get_skus_batch (используется в get_cart_response)
     with patch('src.views.cart.get_skus_batch') as mock_get_skus:
         mock_get_skus.return_value = {
             sku_id: {
@@ -109,7 +104,7 @@ def test_get_cart_enriched_with_b2b_data(api_client, session_id, sku_id, product
     assert response.status_code == 200
     assert response.data['id'] == session_id
     assert response.data['items_count'] == 2
-    assert response.data['subtotal'] == 17000  # (10000 - 1500) * 2
+    assert response.data['subtotal'] == 17000
 
     item = response.data['items'][0]
     assert item['sku_id'] == sku_id
