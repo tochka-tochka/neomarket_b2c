@@ -50,7 +50,7 @@ def test_add_sku_increments_quantity_if_already_in_cart(api_client, session_id, 
             'quantity': 2
         }, format='json')
 
-        assert response1.status_code == 201
+        assert response1.status_code == 200
         assert response1.data['items_count'] == 2
 
         cart_items = CartItem.objects.filter(session_id=session_id)
