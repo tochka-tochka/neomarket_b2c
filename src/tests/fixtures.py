@@ -4,7 +4,7 @@ import uuid
 import pytest
 
 from src.models.orders import Address, Order, OrderItem, OrderStatus, PaymentMethod
-
+from src.models.cart import CartItem
 
 @pytest.fixture
 def test_address(test_user):
@@ -29,6 +29,19 @@ def test_payment_method(test_user):
         type="CARD", card_last4="1111", card_brand="VISA", buyer=test_user
     )
     return payment_method
+
+@pytest.fixture
+def test_cart(test_user):
+    CartItem.objects.create(
+        user_id=test_user.id,
+        sku_id="c35ca151-1b23-43b4-b78c-ec297d9a7fd0",
+        quantity=1,
+    )
+    CartItem.objects.create(
+        user_id=test_user.id,
+        sku_id="c6603522-9922-46f7-86ca-1f134095ff9f",
+        quantity=1,
+    )
 
 
 @pytest.fixture

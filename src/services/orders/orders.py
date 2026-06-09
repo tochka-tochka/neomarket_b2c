@@ -1,5 +1,4 @@
 import uuid
-from functools import partial
 
 import requests
 from django.db import transaction
@@ -14,7 +13,9 @@ from src.models.orders import (
     OrderOperations,
     OrderStatus,
 )
+from src.models.cart import CartItem
 from src.serializers.orders import OrderSerializer
+from src.serializers.cart import CartItemSerializer
 
 
 class AccessDenied(Exception):
@@ -72,15 +73,10 @@ def create_order(user, idempotency_key, data):
         if not idempotency_key:
             raise BadRequestException("idempotency_key is required")
 
-        if not data.get("items"):
-            raise BadRequestException("items can't be empty")
-            
-        for item in data["items"]:
-            if item.get("quantity", 0) < 1:
-                raise BadRequestException("quantity must be greater than or equal to 1")
+        cart_items = CartItem.objects.filter(user_id = user.id)
 
         failed = []
-        sku_ids = [item["sku_id"] for item in data["items"]]
+        sku_ids = [str(item.sku_id) for item in cart_items]
         product_ids = []
         
         for id in sku_ids:
@@ -91,30 +87,27 @@ def create_order(user, idempotency_key, data):
             sku = response.json()
             product_ids.append(sku["product_id"])
 
-        if failed:
-            raise ConflictError("failed to verify items", failed)
-
         products = b2b_client.get_products(product_ids).json()
 
-        for item in data["items"]:
-            sku = find_sku(products, item["sku_id"])
+        for item in cart_items:
+            sku = find_sku(products, str(item.sku_id))
             product = sku["product"]
             
-            if product["status"] != "MODERATED":  # Соответствие шагу 9 диаграммы
-                failed.append({"sku_id": item["sku_id"], "reason": "PRODUCT_NOT_MODERATED"})
+            if product["status"] != "MODERATED":
+                failed.append({"sku_id": str(item.sku_id), "reason": "PRODUCT_NOT_MODERATED"})
             elif product["status"] == "BLOCKED":
-                failed.append({"sku_id": item["sku_id"], "reason": "PRODUCT_BLOCKED"})
+                failed.append({"sku_id": str(item.sku_id), "reason": "PRODUCT_BLOCKED"})
             elif product["deleted"]:
-                failed.append({"sku_id": item["sku_id"], "reason": "PRODUCT_DELETED"})
-            elif sku["active_quantity"] < item["quantity"]:
-                failed.append({"sku_id": item["sku_id"], "reason": "RESERVE_FAILED"})
+                failed.append({"sku_id": str(item.sku_id), "reason": "PRODUCT_DELETED"})
+            elif sku["active_quantity"] < item.quantity:
+                failed.append({"sku_id": str(item.sku_id), "reason": "RESERVE_FAILED"})
 
-        if failed:
+        if len(failed) > 0:
             raise ConflictError("failed to validate items", failed)
 
         order_id = uuid.uuid4()
         
-        response = b2b_client.reserve_skus(idempotency_key, order_id, data["items"])
+        response = b2b_client.reserve_skus(idempotency_key, order_id, cart_items)
         if response.status_code == status.HTTP_409_CONFLICT:
             raise ReserveFailed(response.json())
 
@@ -126,18 +119,18 @@ def create_order(user, idempotency_key, data):
             address_id=data["address_id"],
         )
 
-        for item in data["items"]:
-            sku = find_sku(products, item["sku_id"])
+        for item in cart_items:
+            sku = find_sku(products, str(item.sku_id))
             preview_image = sku["images"][0] if sku.get("images") else ""
             
             OrderItem.objects.create(
                 order=order,
-                sku_id=item["sku_id"],
+                sku_id=str(item.sku_id),
                 product_id=sku["product"]["id"],
                 name=sku["name"],
-                quantity=item["quantity"],
+                quantity=item.quantity,
                 unit_price=sku["price"],
-                line_total=item["quantity"] * sku["price"],
+                line_total=item.quantity * sku["price"],
                 image_url=preview_image,
             )
 
