@@ -26,6 +26,7 @@ from src.views.reg import RegisterView
 from src.views.category import CategoriesView, CategoryView, CategoryFilterView, CategoriesTreeView
 from src.views.orders import OrdersView, OrdersDetailView, OrderDeleteView
 from src.views.cart import CartView, CartItemView, CartValidateView, CartMergeView
+from src.views.product_card import ProductCardView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -41,6 +42,7 @@ urlpatterns = [
     path("api/v1/catalog/breadcrumbs", BreadcrumbsView.as_view()),
     path("api/v1/catalog/facets", CatalogFacetsView.as_view()),
     path("api/v1/catalog/products", CatalogProductsView.as_view()),
+    path("api/v1/catalog/products/<uuid:id>", ProductCardView.as_view()),
 
     path("api/v1/orders", OrdersView.as_view(), name="orders"),
     path("api/v1/orders/<uuid:id>", OrdersDetailView.as_view(), name="order-detail"),

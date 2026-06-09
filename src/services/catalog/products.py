@@ -18,3 +18,10 @@ def get_catalog_products(limit: int, offset: int, q: str, sort: SortType, filter
                     headers={"X-Service-Key": B2B_SERVICE_KEY})
     print(r.text)
     return r.json()
+
+
+def get_product_card(product_id):
+    response = session.get(f"http://{B2B_HOST}/api/v1/public/products/{product_id}",
+                           headers={"X-Service-Key": B2B_SERVICE_KEY})
+
+    return response
