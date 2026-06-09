@@ -71,7 +71,7 @@ class OrdersView(APIView):
                 status=409,
             )
         except Exception as e:
-            return JsonResponse({"code": "SERVER_ERROR", "msg": str(e)}, status=500)
+            return JsonResponse({"code": "SERVER_ERROR"}, status=500)
 
     def get(self, request):
         try:
