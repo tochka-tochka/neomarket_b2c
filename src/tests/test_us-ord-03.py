@@ -8,11 +8,13 @@ from rest_framework import status
 from src.models.orders import Order, OrderItem, OrderStatus, OperationTypes
 from src.models.user import User
 from src.tests.fixtures import (
-    mock_b2b_get_skus_happy_response,
-    mock_b2b_get_skus_unhappy_response,
+    mock_sku1_happy_response,
+    mock_sku2_happy_response,
+    mock_products_happy_response,
     mock_b2b_reserve_happy_response,
     test_address,
     test_payment_method,
+    test_cart
 )
 
 
@@ -150,8 +152,11 @@ class TestCancelOrder:
         test_address,
         test_payment_method,
         mock_b2b_unreserve,
-        mock_b2b_get_skus_happy_response,
+        mock_sku1_happy_response,
+        mock_sku2_happy_response,
+        mock_products_happy_response,
         mock_b2b_reserve_happy_response,
+        test_cart
     ):
         url = reverse("orders")
 
@@ -159,18 +164,6 @@ class TestCancelOrder:
             "address_id": test_address.id,
             "payment_method_id": test_payment_method.id,
             "comment": "fsdhgdfgj",
-            "items_snapshot": [
-                {
-                    "sku_id": "c35ca151-1b23-43b4-b78c-ec297d9a7fd0",
-                    "quantity": 1,
-                    "unit_price": 10,
-                },
-                {
-                    "sku_id": "c6603522-9922-46f7-86ca-1f134095ff9f",
-                    "quantity": 1,
-                    "unit_price": 10,
-                },
-            ],
         }
 
         create_response = jwt_client.post(

@@ -1,8 +1,6 @@
-import re
 import uuid
 
 import pytest
-import responses
 from django.urls import reverse
 from rest_framework import status
 
@@ -14,6 +12,7 @@ from src.tests.fixtures import (
     mock_sku2_happy_response,
     mock_sku2_unhappy_response,
     test_address,
+    test_cart,
     test_payment_method,
 )
 
@@ -29,6 +28,7 @@ class TestCreateOrder:
         mock_sku1_happy_response,
         mock_sku2_happy_response,
         mock_b2b_reserve_happy_response,
+        test_cart,
     ):
         url = reverse("orders")
 
@@ -36,18 +36,6 @@ class TestCreateOrder:
             "address_id": test_address.id,
             "payment_method_id": test_payment_method.id,
             "comment": "fsdhgdfgj",
-            "items_snapshot": [
-                {
-                    "sku_id": "c35ca151-1b23-43b4-b78c-ec297d9a7fd0",
-                    "quantity": 1,
-                    "unit_price": 10,
-                },
-                {
-                    "sku_id": "c6603522-9922-46f7-86ca-1f134095ff9f",
-                    "quantity": 1,
-                    "unit_price": 10,
-                },
-            ],
         }
 
         response = jwt_client.post(
@@ -69,6 +57,7 @@ class TestCreateOrder:
         mock_products_unhappy_response,
         mock_sku1_happy_response,
         mock_sku2_unhappy_response,
+        test_cart,
     ):
         url = reverse("orders")
 
@@ -76,18 +65,6 @@ class TestCreateOrder:
             "address_id": test_address.id,
             "payment_method_id": test_payment_method.id,
             "comment": "fsdhgdfgj",
-            "items_snapshot": [
-                {
-                    "sku_id": "c35ca151-1b23-43b4-b78c-ec297d9a7fd0",
-                    "quantity": 1,
-                    "unit_price": 10,
-                },
-                {
-                    "sku_id": "c6603522-9922-46f7-86ca-1f134095ff9f",
-                    "quantity": 1,
-                    "unit_price": 10,
-                },
-            ],
         }
 
         response = jwt_client.post(
@@ -110,6 +87,7 @@ class TestCreateOrder:
         mock_sku1_happy_response,
         mock_sku2_happy_response,
         mock_b2b_reserve_happy_response,
+        test_cart,
     ):
         url = reverse("orders")
 
@@ -117,18 +95,6 @@ class TestCreateOrder:
             "address_id": test_address.id,
             "payment_method_id": test_payment_method.id,
             "comment": "fsdhgdfgj",
-            "items_snapshot": [
-                {
-                    "sku_id": "c35ca151-1b23-43b4-b78c-ec297d9a7fd0",
-                    "quantity": 1,
-                    "unit_price": 10,
-                },
-                {
-                    "sku_id": "c6603522-9922-46f7-86ca-1f134095ff9f",
-                    "quantity": 1,
-                    "unit_price": 10,
-                },
-            ],
         }
 
         idmpotency_key = str(uuid.uuid4())
@@ -163,18 +129,6 @@ class TestCreateOrder:
             "address_id": test_address.id,
             "payment_method_id": test_payment_method.id,
             "comment": "fsdhgdfgj",
-            "items_snapshot": [
-                {
-                    "sku_id": "c35ca151-1b23-43b4-b78c-ec297d9a7fd0",
-                    "quantity": 1,
-                    "unit_price": 10,
-                },
-                {
-                    "sku_id": "c6603522-9922-46f7-86ca-1f134095ff9f",
-                    "quantity": 1,
-                    "unit_price": 10,
-                },
-            ],
         }
 
         response = jwt_client.post(

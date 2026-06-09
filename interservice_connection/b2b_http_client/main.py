@@ -39,7 +39,7 @@ class B2B_client:
             reserve_items = []
             for item in order_items:
                 reserve_items.append(
-                    {"sku_id": item["sku_id"], "quantity": item["quantity"]}
+                    {"sku_id": str(item.sku_id), "quantity": item.quantity}
                 )
             response = self.session.post(
                 f"{self.b2b_url}/api/v1/inventory/reserve",
