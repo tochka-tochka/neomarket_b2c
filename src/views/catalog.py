@@ -9,7 +9,7 @@ from rest_framework.response import Response
 
 from src.errors import NeomarketServiceError, NeomarketRequestError, NeomarketNotFoundError
 from src.services.catalog.facets import get_catalog_facets
-from src.services.catalog.products import get_catalog_products, get_similar_products
+from src.services.catalog.products import get_catalog_products, get_similar_products, escape_search_query
 from src.services.catalog.utils import parse_query_filters
 from src.services.categories.get import get_breadcrumbs
 from src.serializers.products import SimilarProductsSerializer
@@ -17,21 +17,43 @@ from src.serializers.products import SimilarProductsSerializer
 
 class CatalogProductsView(APIView):
     def get(self, request: Request):
+        search_query = request.query_params.get("q", "")
+
+        if search_query and len(search_query) < 3:
+            return Response(
+                {"code": "INVALID_REQUEST", "message": "Search query must be at least 3 characters"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if len(search_query) > 200:
+            return Response(
+                {"code": "INVALID_REQUEST", "message": "Search query must be at most 200 characters"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        safe_search = escape_search_query(search_query)
+
         try:
             products = get_catalog_products(
                 limit=request.query_params.get("limit", 20),
                 offset=request.query_params.get("offset", 0),
-                q=request.query_params.get("q", ""),
+                q=safe_search,
                 sort=request.query_params.get("sort", "price_asc"),
                 filters=parse_query_filters("filter", request.query_params)
             )
         except requests.exceptions.ConnectionError:
-            raise NeomarketServiceError("Category service temporarily unavailable", "B2B_UNAVAILABLE")
-        except ValueError as e:
-            raise NeomarketRequestError(str(e), "BAD_PARAM")
-        return JsonResponse(
+            return Response(
+                {"code": "SERVICE_UNAVAILABLE", "message": "Catalog temporarily unavailable"},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE
+            )
+        except ValueError:
+            return Response(
+                {"code": "INVALID_REQUEST", "message": "Invalid request data"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        return Response(
             products,
-            safe=False
+            status=status.HTTP_200_OK
         )
 
 

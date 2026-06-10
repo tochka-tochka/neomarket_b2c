@@ -16,8 +16,10 @@ def get_catalog_products(limit: int, offset: int, q: str, sort: SortType, filter
     r = session.get(f"http://{B2B_HOST}/api/v1/public/products?category_id={category_id}&"
                     f"limit={limit}&offset={offset}&q={q}&sort={sort}&" + filters_string,
                     headers={"X-Service-Key": B2B_SERVICE_KEY})
-    print(r.text)
     return r.json()
+
+def escape_search_query(query: str) -> str:
+    return query.replace('%', '\\%').replace('_', '\\_').replace("'", "''")
 
 
 def get_product_card(product_id):
