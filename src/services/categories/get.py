@@ -18,19 +18,33 @@ def __put_into_tree(cat, tree_categories: list):
     return False
 
 
+def fill_level_path(tree: list[dict], path_prefix: list[str] | None = None):
+    for sub in tree:
+        sub["path"] = (path_prefix or []) + [sub["name"]]
+        sub["level"] = len(sub["path"]) - 1
+        fill_level_path(sub["children"], sub["path"])
+
+
 def make_tree(flat_categories):
     result = []
     for cat in flat_categories:
         cat["children"] = []
+
     for cat_a in flat_categories:
         pid_a = cat_a.get("parent_id")
+        found = False
         for cat_b in flat_categories:
             if pid_a == cat_b.get("id"):
                 cat_b['children'].append(cat_a)
+                found = True
                 break
+        if pid_a and not found:
+            raise KeyError
+
     for cat in flat_categories:
         if cat["parent_id"] is None:
             result.append(cat)
+    fill_level_path(result)
     return result
 
 
@@ -72,15 +86,28 @@ def get_flat_categories():
     return __tree_to_flat_categories(tree)
 
 
-def get_category(category_id: uuid.UUID, include_product_count: bool, lang: str = "ru"):
+def get_category(category_id: uuid.UUID, include_product_count: bool, lang: str = "ru") -> dict | None:
     r = session.get(f"http://{B2B_HOST}/api/v1/categories/{category_id}",
                     params={
                         "include_product_count": "true" if include_product_count else "false",
                         "lang": lang
                     })
+    if r.status_code == 404:
+        return None
     return r.json()
 
 
 def get_category_filter(category_id: uuid.UUID):
     r = session.get(f"http://{B2B_HOST}/api/v1/categories/{category_id}/filters")
+    return r.json()
+
+
+def get_breadcrumbs(_id: uuid.UUID, is_product: bool) -> list | None:
+    if is_product:
+        url = f"http://{B2B_HOST}/api/v1/products/{_id}/breadcrumbs"
+    else:
+        url = f"http://{B2B_HOST}/api/v1/categories/{_id}/breadcrumbs"
+    r = session.get(url)
+    if r.status_code == 404:
+        return None
     return r.json()

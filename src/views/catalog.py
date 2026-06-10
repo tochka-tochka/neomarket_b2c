@@ -1,3 +1,5 @@
+import uuid
+
 import requests.exceptions
 from django.http import JsonResponse
 from rest_framework.request import Request
@@ -5,10 +7,11 @@ from rest_framework.views import APIView
 from rest_framework import status
 from rest_framework.response import Response
 
-from src.errors import NeomarketServiceError, NeomarketRequestError
+from src.errors import NeomarketServiceError, NeomarketRequestError, NeomarketNotFoundError
 from src.services.catalog.facets import get_catalog_facets
 from src.services.catalog.products import get_catalog_products, get_similar_products
 from src.services.catalog.utils import parse_query_filters
+from src.services.categories.get import get_breadcrumbs
 from src.serializers.products import SimilarProductsSerializer
 
 
@@ -86,3 +89,16 @@ class SimilarProductsView(APIView):
             )
 
         return Response(serializer.validated_data, status=status.HTTP_200_OK)
+
+
+class BreadcrumbsView(APIView):
+    def get(self, request: Request):
+        category_id: uuid.UUID = request.query_params.get('category_id')
+        product_id: uuid.UUID = request.query_params.get('product_id')
+        if (not category_id and not product_id) or (category_id and product_id):
+            raise NeomarketRequestError("only one of category_id or product_id must be provided")
+        breadcrumbs = get_breadcrumbs(category_id, bool(product_id))
+        if breadcrumbs is None:
+            raise NeomarketNotFoundError("Product or category not found", "NOT_FOUND")
+        return JsonResponse(breadcrumbs, safe=False)
+

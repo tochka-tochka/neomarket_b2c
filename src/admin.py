@@ -42,13 +42,13 @@ class OrderAdmin(admin.ModelAdmin):
                     level=messages.ERROR
                 )
 
-    @admin.action(description="Отметить выбранные заказы как доставленные")
+    @admin.action(description="Отметить выбранные заказы как доставленные (если заказ не отменен)")
     def mark_as_delivered(self, request, queryset):
         success_count = 0
         error_count = 0
 
         for order in queryset:
-            if order.status != "DELIVERED":
+            if order.status != "DELIVERED" and order.status != "CANCELLED":
                 order.status = "DELIVERED"
                 order.save()
                 

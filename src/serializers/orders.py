@@ -50,7 +50,7 @@ class OrderItemSerializer(serializers.ModelSerializer):
         ]
 
 class OrderSerializer(serializers.ModelSerializer):
-    buyer_id = serializers.UUIDField(source="auth_user.id", read_only=True)
+    buyer_id = serializers.UUIDField(source="buyer.id", read_only=True)
     status_history = StatusHistorySerializer(read_only=True, many=True)
     items = OrderItemSerializer(read_only=True, many=True)
     subtotal = serializers.SerializerMethodField()

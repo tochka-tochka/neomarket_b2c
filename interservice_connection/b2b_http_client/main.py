@@ -1,10 +1,10 @@
-import rest_framework.status
-import json
 import os
 
 import requests
+import rest_framework.status
 from requests import Session
 
+from neomarket_b2c.settings import B2B_SERVICE_KEY
 from src.models.orders import FailedFulfillAttempts
 
 
@@ -13,10 +13,22 @@ class B2B_client:
         self.session = Session()
         self.b2b_url = os.environ.get("B2B_URL")
 
-    def get_products_by_sku_ids(self, sku_ids):
+    def get_sku(self, sku_id):
         try:
-            products = self.session.get(
-                f"{self.b2b_url}/api/v1/products?ids={','.join(sku_ids)}"
+            sku = self.session.get(
+                f"{self.b2b_url}/api/v1/public/skus/{sku_id}",
+                headers={"X-Service-Key": B2B_SERVICE_KEY or "SERVICE-KEY-NOT-FOUND"},
+            )
+            return sku
+        except requests.ConnectionError as e:
+            raise e
+
+    def get_products(self, product_ids):
+        try:
+            products = self.session.post(
+                f"{self.b2b_url}/api/v1/public/products/batch",
+                headers={"X-Service-Key": B2B_SERVICE_KEY or "SERVICE-KEY-NOT-FOUND"},
+                json={"product_ids": product_ids},
             )
             return products
         except requests.ConnectionError as e:
@@ -27,10 +39,11 @@ class B2B_client:
             reserve_items = []
             for item in order_items:
                 reserve_items.append(
-                    {"sku_id": item["sku_id"], "quantity": item["quantity"]}
+                    {"sku_id": str(item.sku_id), "quantity": item.quantity}
                 )
             response = self.session.post(
                 f"{self.b2b_url}/api/v1/inventory/reserve",
+                headers={"X-Service-Key": B2B_SERVICE_KEY or "SERVICE-KEY-NOT-FOUND"},
                 json={
                     "idempotency_key": idempotency_key,
                     "order_id": str(order_id),
@@ -48,6 +61,7 @@ class B2B_client:
                 items.append({"sku_id": item["sku_id"], "quantity": item["quantity"]})
             response = self.session.post(
                 f"{self.b2b_url}/api/v1/inventory/unreserve",
+                headers={"X-Service-Key": B2B_SERVICE_KEY or "SERVICE-KEY-NOT-FOUND"},
                 json={"order_id": order["id"], "items": items},
             )
             return response
@@ -61,6 +75,7 @@ class B2B_client:
                 items.append({"sku_id": item["sku_id"], "quantity": item["quantity"]})
             response = self.session.post(
                 f"{self.b2b_url}/api/v1/inventory/fulfill",
+                headers={"X-Service-Key": B2B_SERVICE_KEY or "SERVICE-KEY-NOT-FOUND"},
                 json={"order_id": order["id"], "items": items},
             )
             if response.status_code != rest_framework.status.HTTP_200_OK:

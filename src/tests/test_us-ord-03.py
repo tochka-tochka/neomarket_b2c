@@ -1,11 +1,21 @@
+from src.models import OrderOperations
 import pytest
+import uuid
 import responses
-from django.contrib.auth.models import User
 from django.urls import reverse
 from rest_framework import status
 
-from src.models.orders import Order, OrderItem, OrderStatus
-from src.tests.fixtures import test_address, test_payment_method
+from src.models.orders import Order, OrderItem, OrderStatus, OperationTypes
+from src.models.user import User
+from src.tests.fixtures import (
+    mock_sku1_happy_response,
+    mock_sku2_happy_response,
+    mock_products_happy_response,
+    mock_b2b_reserve_happy_response,
+    test_address,
+    test_payment_method,
+    test_cart
+)
 
 
 @pytest.fixture
@@ -70,14 +80,11 @@ def order(request, test_user, test_address, test_payment_method):
     )
     return order
 
+
 @pytest.fixture
 def mock_b2b_connection_error(responses):
     b2b_url = "http://localhost:8010/api/v1/inventory/unreserve"
-    responses.add(
-        method=responses.POST,
-        url=b2b_url,
-        status=503
-    )
+    responses.add(method=responses.POST, url=b2b_url, status=503)
     return responses
 
 
@@ -95,7 +102,9 @@ class TestCancelOrder:
         assert response.status_code == status.HTTP_200_OK, response.json()
         assert order.status == OrderStatus.CANCELLED
 
-    def test_unreserve_failure_transitions_to_cancel_pending(self, jwt_client, order, mock_b2b_connection_error):
+    def test_unreserve_failure_transitions_to_cancel_pending(
+        self, jwt_client, order, mock_b2b_connection_error
+    ):
 
         url = reverse("order-cancel", args=[order.id])
 
@@ -106,9 +115,7 @@ class TestCancelOrder:
         assert order.status == OrderStatus.CANCEL_PENDING
 
     @pytest.mark.parametrize("order", [OrderStatus.DELIVERED], indirect=True)
-    def test_cancel_delivered_order_returns_409(
-        self, jwt_client, order
-    ):
+    def test_cancel_delivered_order_returns_409(self, jwt_client, order):
 
         url = reverse("order-cancel", args=[order.id])
 
@@ -119,7 +126,9 @@ class TestCancelOrder:
         assert response.json()["current_status"] == OrderStatus.DELIVERED
         assert order.status == OrderStatus.DELIVERED
 
-    def test_user_order_returns_404(self, jwt_client, test_address, test_payment_method):
+    def test_user_order_returns_404(
+        self, jwt_client, test_address, test_payment_method
+    ):
         another_buyer = User.objects.create(
             username="another_user", email="another@example.com", password="12345"
         )
@@ -136,3 +145,50 @@ class TestCancelOrder:
         response = jwt_client.post(url)
 
         assert response.status_code == status.HTTP_404_NOT_FOUND, response.json()
+
+    def test_checkout_cancel_idempotency(
+        self,
+        jwt_client,
+        test_address,
+        test_payment_method,
+        mock_b2b_unreserve,
+        mock_sku1_happy_response,
+        mock_sku2_happy_response,
+        mock_products_happy_response,
+        mock_b2b_reserve_happy_response,
+        test_cart
+    ):
+        url = reverse("orders")
+
+        payload = {
+            "address_id": test_address.id,
+            "payment_method_id": test_payment_method.id,
+            "comment": "fsdhgdfgj",
+        }
+
+        create_response = jwt_client.post(
+            url,
+            data=payload,
+            headers={"Idempotency-Key": str(uuid.uuid4())},
+            content_type="application/json",
+        )
+
+        assert create_response.status_code == status.HTTP_201_CREATED, create_response.json()
+
+        url = reverse("order-cancel", args=[create_response.json()["id"]])
+
+        response = jwt_client.post(url)
+
+        order = Order.objects.get(id=create_response.json()["id"])
+        assert response.status_code == status.HTTP_200_OK, response.json()
+        assert order.status == OrderStatus.CANCELLED
+
+        url = reverse("order-cancel", args=[create_response.json()["id"]])
+
+        response = jwt_client.post(url)
+
+        idempotency_check_count = OrderOperations.objects.filter(type=OperationTypes.CANCEL).count()
+        assert response.status_code == status.HTTP_200_OK
+        assert idempotency_check_count == 1
+
+        

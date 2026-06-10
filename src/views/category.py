@@ -3,10 +3,11 @@ import traceback
 import uuid
 from typing import Literal
 
+import requests.exceptions
 from django.http import JsonResponse
 from rest_framework.views import APIView
 
-from src.errors import NeomarketServiceError
+from src.errors import NeomarketServiceError, NeomarketUnprocessableError, NeomarketNotFoundError
 from src.services.categories.get import get_category, get_tree_categories, get_category_filter, get_flat_categories
 
 
@@ -16,8 +17,10 @@ class CategoryView(APIView):
             include_product_count: bool = request.GET.get("include_product_count") == "true"
             lang: Literal["ru", "en"] = request.GET.get("lang", "ru")
             category = get_category(id, include_product_count, lang)
+            if category is None:
+                raise NeomarketNotFoundError("Category not found", "NOT_FOUND")
             return JsonResponse(category, status=200)
-        except Exception as e:
+        except requests.exceptions.RequestException as e:
             logging.error('\n'.join(traceback.format_exception(e)))
             raise NeomarketServiceError("Category service temporarily unavailable", "B2B_UNAVAILABLE")
 
@@ -29,7 +32,10 @@ class CategoriesView(APIView):
 
 class CategoriesTreeView(APIView):
     def get(self, request):
-        return JsonResponse(get_tree_categories(), safe=False)
+        try:
+            return JsonResponse(get_tree_categories(), safe=False)
+        except KeyError:
+            raise NeomarketUnprocessableError("Broken category hierarchy", "BROKEN_HIERARCHY")
 
 
 class CategoryFilterView(APIView):

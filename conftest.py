@@ -1,5 +1,5 @@
 import pytest
-from django.contrib.auth.models import User
+from src.models.user import User
 from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
 
