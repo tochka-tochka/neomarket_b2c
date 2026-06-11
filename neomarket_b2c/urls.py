@@ -28,6 +28,7 @@ from src.views.orders import OrdersView, OrdersDetailView, OrderDeleteView
 from src.views.cart import CartView, CartItemView, CartValidateView, CartMergeView
 from src.views.product_card import ProductCardView
 from src.views.favorite import FavoritesView, FavoriteDetailView
+from src.views.subscriptions import ProductSubscriptionView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -57,5 +58,6 @@ urlpatterns = [
     path("api/v1/cart/merge", CartMergeView.as_view()),
 
     path("api/v1/favorites", FavoritesView.as_view()),
-    path("api/v1/favorites/<uuid:product_id>", FavoriteDetailView.as_view())
+    path("api/v1/favorites/<uuid:product_id>", FavoriteDetailView.as_view()),
+    path("api/v1/favorites/<uuid:product_id>/subscribe", ProductSubscriptionView.as_view()),
 ]
