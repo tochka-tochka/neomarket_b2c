@@ -27,6 +27,7 @@ from src.views.category import CategoriesView, CategoryView, CategoryFilterView,
 from src.views.orders import OrdersView, OrdersDetailView, OrderDeleteView
 from src.views.cart import CartView, CartItemView, CartValidateView, CartMergeView
 from src.views.product_card import ProductCardView
+from src.views.favorite import FavoritesView, FavoriteDetailView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -54,4 +55,7 @@ urlpatterns = [
     path("api/v1/cart/items/<uuid:sku_id>", CartItemView.as_view()),
     path("api/v1/cart/validate", CartValidateView.as_view()),
     path("api/v1/cart/merge", CartMergeView.as_view()),
+
+    path("api/v1/favorites", FavoritesView.as_view()),
+    path("api/v1/favorites/<uuid:product_id>", FavoriteDetailView.as_view())
 ]
