@@ -30,9 +30,11 @@ def get_product_card(product_id):
 
 
 def get_products_batch(product_ids):
-    response = session.post(f"http://{B2B_HOST}/api/v1/public/products/batch",
-                            params={"product_ids": product_ids},
-                           headers={"X-Service-Key": B2B_SERVICE_KEY})
+    response = session.post(
+        f"http://{B2B_HOST}/api/v1/public/products/batch",
+        json={"product_ids": product_ids},
+        headers={"X-Service-Key": B2B_SERVICE_KEY}
+    )
 
     return response
 
@@ -47,7 +49,7 @@ def get_similar_products(product_id, limit: int = 10):
             headers={"X-Service-Key": B2B_SERVICE_KEY}
         ).json()
 
-        product_ids = [item["id"] for item in response["items"] if item["id"] != product_id][:limit]
+        product_ids = [item["id"] for item in response if item["id"] != product_id][:limit]
 
         response = get_products_batch(product_ids)
 
