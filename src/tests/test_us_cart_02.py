@@ -2,6 +2,7 @@ import pytest
 import uuid
 from rest_framework.test import APIClient
 from unittest.mock import patch
+from unittest.mock import Mock
 from src.models.subscriptions import ProductSubscription
 
 
@@ -20,8 +21,10 @@ def product_id():
     return str(uuid.uuid4())
 
 
-def make_b2b_product(product_id):
-    return {
+def make_b2b_response(product_id):
+    mock_response = Mock()
+    mock_response.status_code = 200
+    mock_response.json.return_value = {
         'id': product_id,
         'name': 'Test Product',
         'slug': 'test-product',
@@ -29,6 +32,13 @@ def make_b2b_product(product_id):
         'has_stock': True,
         'images': [],
     }
+    return mock_response
+
+
+def make_b2b_404():
+    mock_response = Mock()
+    mock_response.status_code = 404
+    return mock_response
 
 
 @pytest.mark.django_db
@@ -38,7 +48,7 @@ def test_subscribe_returns_201_with_notify_on(api_client, user_id, product_id):
          patch('src.views.subscriptions.get_product_card') as mock_product:
 
         mock_jwt.return_value = user_id
-        mock_product.return_value = make_b2b_product(product_id)
+        mock_product.return_value = make_b2b_response(product_id)
 
         response = api_client.post(
             f'/api/v1/favorites/{product_id}/subscribe',
@@ -64,7 +74,7 @@ def test_duplicate_subscription_returns_409(api_client, user_id, product_id):
          patch('src.views.subscriptions.get_product_card') as mock_product:
 
         mock_jwt.return_value = user_id
-        mock_product.return_value = make_b2b_product(product_id)
+        mock_product.return_value = make_b2b_response(product_id)
 
         response = api_client.post(
             f'/api/v1/favorites/{product_id}/subscribe',
@@ -97,11 +107,14 @@ def test_invalid_notify_on_returns_400(api_client, user_id, product_id):
 @pytest.mark.django_db
 def test_subscribe_to_unknown_product_returns_404(api_client, user_id, product_id):
 
+    mock_response = Mock()
+    mock_response.status_code = 404
+
     with patch('src.views.subscriptions.get_user_id_from_jwt') as mock_jwt, \
          patch('src.views.subscriptions.get_product_card') as mock_product:
 
         mock_jwt.return_value = user_id
-        mock_product.return_value = None
+        mock_product.return_value = mock_response
 
         response = api_client.post(
             f'/api/v1/favorites/{product_id}/subscribe',
