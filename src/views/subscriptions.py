@@ -36,8 +36,8 @@ class ProductSubscriptionView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        product = get_product_card(product_id)
-        if product is None:
+        product_response = get_product_card(product_id)
+        if product_response.status_code == 404:
             return Response(
                 {"code": "PRODUCT_NOT_FOUND", "message": "Product does not exist or is unavailable"},
                 status=status.HTTP_404_NOT_FOUND
