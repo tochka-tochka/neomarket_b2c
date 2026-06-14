@@ -14,7 +14,7 @@ def get_catalog_products(limit: int, offset: int, search: str, sort: SortType, f
     filters_string = "&".join(make_filters_query_params(filters))
     # TODO: maybe use `params`?
     r = session.get(f"http://{B2B_HOST}/api/v1/public/products?category_id={category_id}&"
-                    f"limit={limit}&offset={offset}&q={search}&sort={sort}&" + filters_string,
+                    f"limit={limit}&offset={offset}&search={search}&sort={sort}&" + filters_string,
                     headers={"X-Service-Key": B2B_SERVICE_KEY})
     return r.json()
 
