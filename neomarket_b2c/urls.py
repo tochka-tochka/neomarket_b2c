@@ -29,6 +29,7 @@ from src.views.cart import CartView, CartItemView, CartValidateView, CartMergeVi
 from src.views.product_card import ProductCardView
 from src.views.favorite import FavoritesView, FavoriteDetailView
 from src.views.subscriptions import ProductSubscriptionView
+from src.views.events import B2BEventsView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -60,4 +61,6 @@ urlpatterns = [
     path("api/v1/favorites", FavoritesView.as_view()),
     path("api/v1/favorites/<uuid:product_id>", FavoriteDetailView.as_view()),
     path("api/v1/favorites/<uuid:product_id>/subscribe", ProductSubscriptionView.as_view()),
+
+    path("api/v1/b2b/events", B2BEventsView.as_view()),
 ]

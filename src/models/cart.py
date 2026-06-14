@@ -10,6 +10,7 @@ class CartItem(models.Model):
     quantity = models.PositiveIntegerField(default=1)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    unavailable_reason = models.CharField(max_length=50, null=True, blank=True)
 
     class Meta:
         db_table = 'cart_items'
