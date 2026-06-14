@@ -37,7 +37,7 @@ class CatalogProductsView(APIView):
             products = get_catalog_products(
                 limit=request.query_params.get("limit", 20),
                 offset=request.query_params.get("offset", 0),
-                q=safe_search,
+                search=safe_search,
                 sort=request.query_params.get("sort", "price_asc"),
                 filters=parse_query_filters("filter", request.query_params)
             )
